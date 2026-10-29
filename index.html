@@ -92,7 +92,7 @@
   </div>
   <div id="centerHint"></div>
   <canvas id="c" width="960" height="540"></canvas>
-  <div class="hint">电脑：A/D 移动 · J 轻拳 · K 重拳 · W/空格 跳/闪 · S/L 格挡 · F 开关特效</div>
+  <div class="hint">电脑：A/D 移动 · J 轻拳 · K 重拳 · W/空格 跳 · S 闪 · L 格挡 · F 开关特效</div>
   <div id="controls">
     <div class="pad left">
       <button class="btn rect" data-k="left">◀ 左</button>
@@ -919,16 +919,6 @@ function frame(now) {
 }
 
 resetRound();
-// debug hooks for headless capture
-window.__HF = {
-  fxCount: () => fx.length,
-  forceCloseAndHeavy() {
-    you.x = 420; ai.x = 500; you.y = ai.y = GROUND;
-    you.vx = ai.vx = 0; you.state = 'idle'; ai.state = 'idle';
-    startAttack(you, 'heavy');
-  },
-  hp: () => ({ you: you.hp, ai: ai.hp })
-};
 requestAnimationFrame(frame);
 
 // auto-start audio on first gesture already handled
