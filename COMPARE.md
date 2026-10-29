@@ -1,17 +1,13 @@
 # 原文终版 vs Demo 对照
 
-对照图：`/workspace/hitfeel-demo/compare.png`（上：命中卡帧 · 下：蓄力）
-参考拆帧：`ref/frames/05r/`（文章 GIF 05 右栏精校 ×0.65）
+对照图：`/workspace/hitfeel-demo/compare.png`
 
-## 已对齐
-- 造型：圆角方块躯干 + 圆头 + 悬浮圆手（无腿），橙攻 `#fd6738` / 青受 `#33bbfe`，底 `#090a0f`
-- 命中特效：白黄径向 bloom + 多层环 + 放射线 + 方块粒子；卡帧角色×0.25、特效全帧速、寿命×0.65
-- 镜头：命中 shake + 微 zoom
-- 默认 Showcase 终版（完整反馈），可切「无反馈」；另有对战
-- 节奏：idle → 蓄力后仰 → 冲拳 → 卡帧 → 击退 → 恢复
+## 本轮修复 / 优化
+- **对战失灵根因**：`const AT_L` 拼写错误（应为 `ATK_L`）。轻拳或 AI 轻拳一出手就抛 `ATK_L is not defined`，整局 `requestAnimationFrame` 中断 → 手机上表现为「按不动」。
+- 模式按钮：避免 `touchstart preventDefault` 吞掉 click；`bindTap` 兼容触屏。
+- 操作区：更大按钮、`z-index`、短屏缩小 canvas；pointer capture，去掉 iOS 误触的 `pointerleave` 清键。
+- 跳跃/出拳意图提到状态机前面，不被 attack/hurt early-return 吃掉。
+- 视觉：更肉的体型、更狠蓄力/冲拳、受击挤压更强、射线不规则 + 轻胶片颗粒/暗角。
 
 ## 仍有差距
-- 原文体型更敦、头身更紧；Demo 仍略偏「块头感」与接触形变
-- 成片冲击闪光更大、射线更锋利不规则；Canvas 仍偏干净规则
-- 蓄力后仰 / 出手冲刺幅度略弱于 GIF
-- 无原文级景深与胶片感噪点
+- 原文手绘闪光的脏感与接触形变仍略强于 Canvas 近似。

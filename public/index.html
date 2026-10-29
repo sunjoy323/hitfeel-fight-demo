@@ -11,16 +11,21 @@
   html, body { margin:0; height:100%; background:#07080c; color:#e8ecf4;
     font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; overflow:hidden; }
   #wrap { position:relative; width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; }
-  canvas { display:block; width:100%; max-width:960px; max-height:58vh; background:#090a0f;
-    border-radius:10px; box-shadow:0 0 0 1px #1e2430, 0 18px 40px rgba(0,0,0,.5); }
+  canvas { display:block; width:100%; max-width:960px; max-height:48vh; background:#090a0f;
+    border-radius:10px; box-shadow:0 0 0 1px #1e2430, 0 18px 40px rgba(0,0,0,.5);
+    touch-action: none; position:relative; z-index:1; }
+  @media (max-height:700px){ canvas { max-height:40vh; } }
+  @media (max-height:600px){ canvas { max-height:34vh; } }
   #topbar { width:min(960px,100%); padding:8px 10px 4px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; justify-content:space-between; }
   #topbar .modes, #topbar .opts { display:flex; flex-wrap:wrap; gap:6px; }
   button.tb {
-    font-size:12px; padding:7px 11px; border-radius:999px; border:1px solid #3b4a63;
-    background:rgba(18,24,38,.9); color:#e8ecf4;
+    font-size:14px; font-weight:700; padding:10px 16px; min-height:44px; border-radius:999px;
+    border:2px solid #3b4a63; background:rgba(18,24,38,.95); color:#e8ecf4;
+    touch-action: manipulation; -webkit-user-select:none; user-select:none;
   }
-  button.tb.on { border-color:#fd6738; color:#ffb39a; }
-  button.tb.cyan.on { border-color:#33bbfe; color:#9ad9ff; }
+  button.tb.on { border-color:#fd6738; color:#ffb39a; background:#2a1510; }
+  button.tb.cyan.on { border-color:#33bbfe; color:#9ad9ff; background:#0f2430; }
+  #modeFight.on { border-color:#33bbfe; color:#9ad9ff; background:#0f2430; }
   #hud { position:absolute; top:52px; left:50%; transform:translateX(-50%); width:min(960px,100%);
     padding:0 12px; display:none; justify-content:space-between; gap:8px; pointer-events:none; z-index:2; }
   #hud.show { display:flex; }
@@ -34,23 +39,29 @@
     position:absolute; top:14%; left:50%; transform:translateX(-50%); z-index:3; pointer-events:none;
     font-size:15px; font-weight:700; letter-spacing:.06em; text-shadow:0 2px 10px #000; opacity:.95;
   }
-  #controls { width:min(960px,100%); padding:8px 12px calc(10px + env(safe-area-inset-bottom));
-    display:none; grid-template-columns:1fr 1fr; gap:10px; align-items:end; }
+  #controls { width:min(960px,100%); padding:8px 12px calc(12px + env(safe-area-inset-bottom));
+    display:none; grid-template-columns:1fr 1fr; gap:10px; align-items:end;
+    position:relative; z-index:20; pointer-events:auto; flex-shrink:0;
+    background:linear-gradient(180deg, transparent, rgba(7,8,12,.92) 30%); }
   #controls.show { display:grid; }
-  .pad { display:flex; gap:10px; align-items:center; }
+  .pad { display:flex; gap:12px; align-items:center; pointer-events:auto; }
   .pad.right { justify-content:flex-end; flex-wrap:wrap; }
   .btn {
-    width:64px; height:64px; border-radius:50%; border:2px solid #3b4a63; background:#141820; color:#e8ecf4;
-    font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center;
+    width:72px; height:72px; border-radius:50%; border:2px solid #3b4a63; background:#141820; color:#e8ecf4;
+    font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center;
+    touch-action: none; -webkit-user-select:none; user-select:none; pointer-events:auto;
+    z-index:21; position:relative;
   }
-  .btn.rect { width:72px; border-radius:14px; }
-  .btn:active, .btn.held { background:#2563eb; border-color:#60a5fa; }
+  .btn.rect { width:80px; border-radius:16px; }
+  .btn:active, .btn.held { background:#2563eb; border-color:#60a5fa; transform:scale(0.96); }
   .btn.atk { background:#3b1d14; border-color:#fd6738; }
   .btn.atk:active, .btn.atk.held { background:#c2410c; }
   .btn.heavy { background:#1a2a33; border-color:#33bbfe; }
   .btn.heavy:active, .btn.heavy.held { background:#0369a1; }
-  .hint { width:min(960px,100%); padding:0 12px 4px; font-size:11px; opacity:.65; text-align:center; }
-  @media (min-width:700px){ .btn{width:72px;height:72px;} .btn.rect{width:84px;} }
+  .hint { width:min(960px,100%); padding:0 12px 4px; font-size:11px; opacity:.65; text-align:center; flex-shrink:0; }
+  @media (min-width:700px){ .btn{width:80px;height:80px;} .btn.rect{width:92px;} }
+  #wrap.fight-mode { justify-content:flex-start; padding-top:4px; }
+  #wrap.fight-mode canvas { max-height:38vh; }
 </style>
 </head>
 <body>
@@ -130,14 +141,14 @@ const SHOW = {
   fxLifeScale: 0.65,
 };
 
-const AT_L = {
-  windup: 8, active: 3, recover: 14,
-  dmg: 8, kb: 280, hitstop: 8, reach: 70,
+const ATK_L = {
+  windup: 6, active: 4, recover: 12,
+  dmg: 8, kb: 280, hitstop: 8, reach: 86,
   shake: 5, zoom: 1.03, fxScale: 0.75
 };
 const ATK_H = {
-  windup: 12, active: 3, recover: 22,
-  dmg: 16, kb: 480, hitstop: 11, reach: 78,
+  windup: 10, active: 4, recover: 20,
+  dmg: 16, kb: 480, hitstop: 11, reach: 96,
   shake: 9, zoom: 1.06, fxScale: 1
 };
 
@@ -147,7 +158,7 @@ function makeChar(x, color, colorDark, facing) {
     x, y: GROUND, vx: 0, vy: 0, facing,
     color, colorDark,
     // proportions (ref ~40x45 body in 240 half → scale ~2.2 for 960)
-    bodyW: 92, bodyH: 88, headR: 24, handR: 18,
+    bodyW: 102, bodyH: 86, headR: 28, handR: 20,
     tilt: 0, // radians
     squashX: 1, squashY: 1,
     flash: 0,
@@ -190,6 +201,8 @@ function resetFight() {
   fx = []; dust = [];
   cam = { x: 0, y: 0, shake: 0, zoom: 1, targetZoom: 1, push: 0 };
   roundOver = false;
+  aiThink = 45; // let player act first
+  ai._intent = "approach";
   updateHp();
 }
 
@@ -218,15 +231,19 @@ function spawnHitFX(x, y, scale, lifeFrames) {
       warm: Math.random() < 0.45
     });
   }
-  // radial shards / star lines — denser, longer (终版放射感)
-  const rays = Math.round(14 * scale);
+  // radial shards — hand-drawn irregular (随机长短/抖动/粗细)
+  const rays = Math.round(16 * scale);
   for (let i = 0; i < rays; i++) {
-    const a = (i / rays) * Math.PI * 2 + (Math.random() - 0.5) * 0.25;
+    const a = (i / rays) * Math.PI * 2 + (Math.random() - 0.5) * 0.55;
+    const jagged = Math.random() < 0.35;
     fx.push({
       t: "ray", x, y, a,
-      life: Math.round(life * 0.85), max: Math.round(life * 0.85),
-      len: (48 + Math.random() * 56) * scale,
-      w: 1.8 + Math.random() * 2.2
+      life: Math.round(life * (0.65 + Math.random() * 0.35)),
+      max: Math.round(life * 0.9),
+      len: (32 + Math.random() * 78) * scale,
+      w: 1.2 + Math.random() * 3.4,
+      jitter: 2 + Math.random() * 5,
+      jagged
     });
   }
 }
@@ -247,8 +264,10 @@ function spawnDust(x) {
 // —— Audio ——
 let ac = null;
 function ensureAudio() {
-  if (!ac) { const AC = window.AudioContext || window.webkitAudioContext; if (AC) ac = new AC(); }
-  if (ac && ac.state === "suspended") ac.resume();
+  try {
+    if (!ac) { const AC = window.AudioContext || window.webkitAudioContext; if (AC) ac = new AC(); }
+    if (ac && ac.state === "suspended") ac.resume().catch(() => {});
+  } catch (_) {}
 }
 function sfxHit(heavy) {
   if (!sfxOn || !ac || variant === "bare") return;
@@ -284,12 +303,34 @@ window.addEventListener("keydown", e => {
 window.addEventListener("keyup", e => { const k=map[e.key]; if(k) keys[k]=0; });
 document.querySelectorAll("#controls .btn").forEach(el => {
   const k = el.dataset.k;
-  const down = ev => { ev.preventDefault(); ensureAudio(); el.classList.add("held");
-    if ((k==="light"||k==="heavy"||k==="jump") && !keys[k]) just[k]=1; keys[k]=1; };
-  const up = ev => { ev.preventDefault(); el.classList.remove("held"); keys[k]=0; };
-  el.addEventListener("pointerdown", down); el.addEventListener("pointerup", up);
-  el.addEventListener("pointercancel", up); el.addEventListener("pointerleave", up);
+  const down = ev => {
+    if (ev.cancelable) ev.preventDefault();
+    ev.stopPropagation();
+    ensureAudio();
+    try { if (ev.pointerId != null) el.setPointerCapture(ev.pointerId); } catch (_) {}
+    el.classList.add("held");
+    if ((k==="light"||k==="heavy"||k==="jump") && !keys[k]) just[k]=1;
+    keys[k]=1;
+  };
+  const up = ev => {
+    if (ev.cancelable) ev.preventDefault();
+    el.classList.remove("held");
+    keys[k]=0;
+  };
+  if (window.PointerEvent) {
+    el.addEventListener("pointerdown", down);
+    el.addEventListener("pointerup", up);
+    el.addEventListener("pointercancel", up);
+    el.addEventListener("lostpointercapture", up);
+  } else {
+    el.addEventListener("touchstart", down, { passive: false });
+    el.addEventListener("touchend", up, { passive: false });
+    el.addEventListener("touchcancel", up, { passive: false });
+    el.addEventListener("mousedown", down);
+    el.addEventListener("mouseup", up);
+  }
 });
+
 
 function toggleFx() {
   fxOn = !fxOn;
@@ -297,18 +338,37 @@ function toggleFx() {
   document.getElementById("fxBtn").className = "tb" + (fxOn ? " on" : "");
   if (!fxOn) { fx.length = 0; dust.length = 0; }
 }
-document.getElementById("sfxBtn").onclick = () => {
+function bindTap(el, fn) {
+  if (!el) return;
+  let last = 0;
+  const go = () => {
+    const now = performance.now();
+    if (now - last < 350) return; // debounce click+touch double fire
+    last = now;
+    ensureAudio();
+    fn();
+  };
+  el.addEventListener("click", go);
+  el.addEventListener("touchend", ev => {
+    if (ev.cancelable) ev.preventDefault(); // suppress synthetic click; we handle here
+    go();
+  }, { passive: false });
+}
+bindTap(document.getElementById("modeShow"), () => setMode("show"));
+bindTap(document.getElementById("modeFight"), () => setMode("fight"));
+bindTap(document.getElementById("verFull"), () => setVariant("full"));
+bindTap(document.getElementById("verBare"), () => setVariant("bare"));
+bindTap(document.getElementById("fxBtn"), () => toggleFx());
+bindTap(document.getElementById("sfxBtn"), () => {
   sfxOn = !sfxOn; ensureAudio();
+  const sfxBtn = document.getElementById("sfxBtn");
   sfxBtn.textContent = sfxOn ? "音效 ON" : "音效 OFF";
   sfxBtn.className = "tb" + (sfxOn ? " on" : "");
-};
-document.getElementById("modeShow").onclick = () => setMode("show");
-document.getElementById("modeFight").onclick = () => setMode("fight");
-document.getElementById("verFull").onclick = () => setVariant("full");
-document.getElementById("verBare").onclick = () => setVariant("bare");
+});
 
 function setMode(m) {
   mode = m;
+  document.getElementById("wrap").classList.toggle("fight-mode", m==="fight");
   document.getElementById("modeShow").className = "tb" + (m==="show"?" on":"");
   document.getElementById("modeFight").className = "tb" + (m==="fight"?" on":"");
   document.getElementById("hud").classList.toggle("show", m==="fight");
@@ -317,6 +377,9 @@ function setMode(m) {
   document.getElementById("hintFight").style.display = m==="fight" ? "" : "none";
   document.getElementById("verFull").style.display = m==="show" ? "" : "none";
   document.getElementById("verBare").style.display = m==="show" ? "" : "none";
+  // clear stuck keys on mode switch
+  Object.keys(keys).forEach(k => keys[k]=0);
+  Object.keys(just).forEach(k => just[k]=0);
   if (m==="show") resetShow(); else resetFight();
   updateLabel();
 }
@@ -345,33 +408,34 @@ function setPoseIdle(c) {
   c.tilt = 0; c.squashX = 1; c.squashY = 1; c.punchExtend = 0;
   c.handFront = { x: 42, y: -44 }; c.handBack = { x: -38, y: -40 };
 }
-function setPoseWindup(c, p) { // p 0..1 — lean BACK (canvas +rot = forward when facing right)
-  c.tilt = -0.72 * p;
-  c.squashX = 1 + 0.18 * p; c.squashY = 1 - 0.22 * p;
-  c.punchExtend = -0.45 * p;
-  c.handFront = { x: 6 - 42 * p, y: -48 - 4 * p };
-  c.handBack = { x: -22 + 10 * p, y: -34 };
+function setPoseWindup(c, p) { // p 0..1 — lean BACK hard
+  c.tilt = -0.95 * p;
+  c.squashX = 1 + 0.26 * p; c.squashY = 1 - 0.30 * p;
+  c.punchExtend = -0.55 * p;
+  c.handFront = { x: 4 - 48 * p, y: -46 - 6 * p };
+  c.handBack = { x: -24 + 12 * p, y: -32 };
 }
-function setPoseStrike(c, p) { // p 0..1 through strike
-  c.tilt = 0.48;
-  c.squashX = 1.22; c.squashY = 0.84;
-  c.punchExtend = 0.15 + 1.0 * p;
-  c.handFront = { x: 40 + 78 * p, y: -48 };
-  c.handBack = { x: -34, y: -34 };
-  c.x += c.facing * 3.2; // lunge
+function setPoseStrike(c, p) { // p 0..1 through strike — hard lunge
+  c.tilt = 0.62;
+  c.squashX = 1.32; c.squashY = 0.78;
+  c.punchExtend = 0.2 + 1.05 * p;
+  c.handFront = { x: 44 + 88 * p, y: -46 };
+  c.handBack = { x: -38, y: -32 };
+  c.x += c.facing * 4.6; // hard lunge
 }
 function setPoseHitAttacker(c) {
-  c.tilt = 0.42;
-  c.squashX = 1.15; c.squashY = 0.88;
+  c.tilt = 0.55;
+  c.squashX = 1.22; c.squashY = 0.82;
   c.punchExtend = 1;
-  c.handFront = { x: 108, y: -48 };
-  c.handBack = { x: -30, y: -34 };
+  c.handFront = { x: 118, y: -46 };
+  c.handBack = { x: -34, y: -32 };
 }
-function setPoseHurt(c, p) { // p 0 at hit ..1 later
-  c.tilt = -0.62; // lean back in local space
-  c.squashX = 0.68 + 0.32 * Math.min(1, p * 2);
-  c.squashY = 1.28 - 0.28 * Math.min(1, p * 2);
-  c.handFront = { x: 26, y: -42 }; c.handBack = { x: -26, y: -42 };
+function setPoseHurt(c, p) { // p 0 at hit ..1 later — strong squash/stretch
+  c.tilt = -0.78;
+  const k = Math.min(1, p * 1.6);
+  c.squashX = 0.52 + 0.48 * k;
+  c.squashY = 1.48 - 0.48 * k;
+  c.handFront = { x: 28, y: -40 }; c.handBack = { x: -28, y: -40 };
   c.punchExtend = 0;
 }
 
@@ -542,9 +606,14 @@ function updateFightChar(f, input, foe) {
       const p = (f.frame - a.windup) / a.active;
       setPoseStrike(f, p);
       if (!f.hitDone) {
-        const fist = { x: f.x + f.handFront.x * f.facing, y: f.y + f.handFront.y, r: f.handR + 4 };
+        const fistX = f.x + f.handFront.x * f.facing;
+        const fistY = f.y + f.handFront.y;
         const bb = bodyBox(foe);
-        if (fist.x > bb.x && fist.x < bb.x + bb.w && fist.y > bb.y && fist.y < bb.y + bb.h) {
+        const cx = Math.max(bb.x, Math.min(fistX, bb.x + bb.w));
+        const cy = Math.max(bb.y, Math.min(fistY, bb.y + bb.h));
+        const dx = fistX - cx, dy = fistY - cy;
+        const reach = (a.reach || 70) * 0.55 + f.handR;
+        if (dx * dx + dy * dy <= reach * reach) {
           applyFightHit(f, foe, a);
           f.hitDone = true;
         }
@@ -593,16 +662,6 @@ function updateFightChar(f, input, foe) {
     }
   }
 
-  if (just.jump && f === you) {
-    if (f.onGround) { f.vy = -14; f.onGround = false; }
-    else if (f.invuln <= 0) { f.invuln = 14; f.vx = -f.facing * 6; }
-    just.jump = 0;
-  }
-  if (f === you) {
-    if (just.light) { startAtk(f, false); just.light = 0; }
-    if (just.heavy) { startAtk(f, true); just.heavy = 0; }
-  }
-
   // gravity
   f.vy += 0.55; f.y += f.vy;
   if (f.y >= GROUND) { f.y = GROUND; f.vy = 0; f.onGround = true; }
@@ -629,12 +688,12 @@ function applyFightHit(attacker, defender, a) {
   defender.state = "hurt"; defender.frame = 0; defender.attack = null;
   defender.vx = attacker.facing * (a.kb / 50);
   defender.flash = 5;
-  defender.squashX = 0.7; defender.squashY = 1.25;
+  defender.squashX = 0.48; defender.squashY = 1.55;
   setPoseHurt(defender, 0);
   attacker.hitstop = a.hitstop;
   defender.hitstop = a.hitstop;
-  const hx = attacker.x + attacker.facing * 72;
-  const hy = GROUND - 56;
+  const hx = attacker.x + attacker.facing * attacker.handFront.x;
+  const hy = attacker.y + attacker.handFront.y;
   spawnHitFX(hx, hy, a.fxScale, a.hitstop);
   cam.shake = a.shake; cam.targetZoom = a.zoom; cam.push = attacker.facing * 12;
   sfxHit(a.dmg > 10);
@@ -648,11 +707,11 @@ function updateAI() {
   const dist = Math.abs(ai.x - you.x);
   keysAI.left = keysAI.right = keysAI.block = 0;
   if (aiThink <= 0) {
-    aiThink = 12 + Math.floor(Math.random() * 18);
-    if (you.state === "attack" && dist < 120 && Math.random() < 0.5) ai._intent = "block";
-    else if (dist > 140) ai._intent = "approach";
-    else if (dist < 70 && Math.random() < 0.3) ai._intent = "retreat";
-    else if (Math.random() < 0.55) ai._intent = Math.random() < 0.65 ? "light" : "heavy";
+    aiThink = 18 + Math.floor(Math.random() * 22);
+    if (you.state === "attack" && dist < 130 && Math.random() < 0.55) ai._intent = "block";
+    else if (dist > 120) ai._intent = "approach";
+    else if (dist < 75 && Math.random() < 0.35) ai._intent = "retreat";
+    else if (dist < 125 && Math.random() < 0.32) ai._intent = Math.random() < 0.7 ? "light" : "heavy";
     else ai._intent = "idle";
   }
   if (ai._intent === "approach") { if (ai.x > you.x) keysAI.left=1; else keysAI.right=1; }
@@ -662,9 +721,23 @@ function updateAI() {
   else if (ai._intent === "heavy") { startAtk(ai, true); ai._intent = "idle"; }
 }
 
+function consumePlayerIntent() {
+  // Process edges even if currently in attack/hurt so inputs are not eaten by early returns
+  if (just.jump) {
+    if (you.state !== "attack" && you.state !== "hurt" && you.hitstop <= 0) {
+      if (you.onGround) { you.vy = -14; you.onGround = false; }
+      else if (you.invuln <= 0) { you.invuln = 14; you.vx = -you.facing * 6; }
+    }
+    just.jump = 0;
+  }
+  if (just.light) { startAtk(you, false); just.light = 0; }
+  if (just.heavy) { startAtk(you, true); just.heavy = 0; }
+}
+
 function updateFight() {
   if (!roundOver) {
     updateAI();
+    consumePlayerIntent();
     updateFightChar(you, keys, ai);
     updateFightChar(ai, keysAI, you);
     // separate
@@ -723,18 +796,18 @@ function drawChar(c) {
   ctx.rotate(c.tilt);
   ctx.scale(c.squashX, c.squashY);
   ctx.fillStyle = col;
-  roundRectPath(-c.bodyW / 2, -c.bodyH, c.bodyW, c.bodyH, 26);
+  roundRectPath(-c.bodyW / 2, -c.bodyH, c.bodyW, c.bodyH, 32);
   ctx.fill();
   ctx.strokeStyle = dark;
   ctx.lineWidth = 2;
   ctx.stroke();
   ctx.beginPath();
-  ctx.arc(0, -c.bodyH - c.headR * 0.35, c.headR, 0, Math.PI * 2);
+  ctx.arc(0, -c.bodyH - c.headR * 0.15, c.headR, 0, Math.PI * 2);
   ctx.fillStyle = col;
   ctx.fill();
   ctx.fillStyle = COL.eye;
   ctx.beginPath();
-  ctx.arc(9, -c.bodyH - c.headR * 0.35, 4, 0, Math.PI * 2);
+  ctx.arc(10, -c.bodyH - c.headR * 0.15, 4.5, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 
@@ -784,17 +857,26 @@ function drawFX() {
       ctx.strokeStyle = COL.fx;
       ctx.lineWidth = p.w || 2.5;
       const len = p.len * (0.55 + 0.45 * k);
+      const j = p.jitter || 0;
+      const ox = (Math.random() - 0.5) * j;
+      const oy = (Math.random() - 0.5) * j;
+      const ca = Math.cos(p.a), sa = Math.sin(p.a);
       ctx.beginPath();
-      ctx.moveTo(p.x + Math.cos(p.a) * 4, p.y + Math.sin(p.a) * 4);
-      ctx.lineTo(p.x + Math.cos(p.a) * len, p.y + Math.sin(p.a) * len);
+      ctx.moveTo(p.x + ca * 3 + ox * 0.3, p.y + sa * 3 + oy * 0.3);
+      if (p.jagged) {
+        const mid = len * (0.4 + Math.random() * 0.3);
+        ctx.lineTo(p.x + ca * mid + ox, p.y + sa * mid + oy);
+        ctx.lineTo(p.x + ca * len - ox * 0.5, p.y + sa * len - oy * 0.5);
+      } else {
+        ctx.lineTo(p.x + ca * len + ox * 0.2, p.y + sa * len + oy * 0.2);
+      }
       ctx.stroke();
-      // warm tip
       ctx.globalAlpha = k * 0.55;
       ctx.strokeStyle = COL.fxWarm;
-      ctx.lineWidth = (p.w || 2.5) * 0.6;
+      ctx.lineWidth = (p.w || 2.5) * 0.55;
       ctx.beginPath();
-      ctx.moveTo(p.x + Math.cos(p.a) * len * 0.55, p.y + Math.sin(p.a) * len * 0.55);
-      ctx.lineTo(p.x + Math.cos(p.a) * len, p.y + Math.sin(p.a) * len);
+      ctx.moveTo(p.x + ca * len * 0.5, p.y + sa * len * 0.5);
+      ctx.lineTo(p.x + ca * len, p.y + sa * len);
       ctx.stroke();
     }
   }
@@ -824,6 +906,31 @@ function draw() {
     drawChar(you); drawChar(ai);
   }
   drawFX();
+
+  // film grain + vignette (轻胶片感)
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  const g = ctx.createRadialGradient(W/2, H/2, H*0.25, W/2, H/2, H*0.75);
+  g.addColorStop(0, "rgba(0,0,0,0)");
+  g.addColorStop(1, "rgba(0,0,0,0.38)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+  if (!draw._grain) {
+    draw._grain = document.createElement("canvas");
+    draw._grain.width = 160; draw._grain.height = 90;
+  }
+  const gc = draw._grain.getContext("2d");
+  const id = gc.createImageData(160, 90);
+  for (let i = 0; i < id.data.length; i += 4) {
+    const v = (Math.random() * 255) | 0;
+    id.data[i] = id.data[i+1] = id.data[i+2] = v;
+    id.data[i+3] = 28;
+  }
+  gc.putImageData(id, 0, 0);
+  ctx.globalAlpha = 0.07;
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(draw._grain, 0, 0, W, H);
+  ctx.globalAlpha = 1;
+  ctx.imageSmoothingEnabled = true;
 
   // hitstop badge
   if (mode === "show" && variant === "full" && showFrame > SHOW.strikeEnd && showFrame <= SHOW.hitstopEnd) {
@@ -855,8 +962,12 @@ function frame(now) {
   if (acc > 200) acc = 200;
   while (acc >= STEP) {
     if (!paused) {
-      if (mode === "show") updateShow();
-      else updateFight();
+      try {
+        if (mode === "show") updateShow();
+        else updateFight();
+      } catch (err) {
+        console.error("[hitfeel]", err);
+      }
     }
     acc -= STEP;
   }
@@ -872,6 +983,15 @@ window.__HF = {
   setMode, setVariant,
   resetShow, resetFight,
   fxCount: () => fx.length,
+  keys: () => ({ ...keys }),
+  just: () => ({ ...just }),
+  youState: () => you ? { state: you.state, hp: you.hp, x: you.x, y: you.y, facing: you.facing } : null,
+  aiState: () => ai ? { state: ai.state, hp: ai.hp, x: ai.x, y: ai.y } : null,
+  press(k) {
+    if ((k==="light"||k==="heavy"||k==="jump") && !keys[k]) just[k]=1;
+    keys[k]=1;
+  },
+  release(k) { keys[k]=0; },
   pause(v) { paused = !!v; },
   step() { if (mode === "show") updateShow(); else updateFight(); },
   seekShow(f) {
@@ -883,7 +1003,7 @@ window.__HF = {
   chars() {
     const a = mode==="show" ? atk : you;
     const b = mode==="show" ? vic : ai;
-    return { ax:a.x, ay:a.y, bx:b.x, by:b.y, fx: fx.length, flash:b.flash, tilt:b.tilt };
+    return { ax:a.x, ay:a.y, bx:b.x, by:b.y, fx: fx.length, flash:b.flash, tilt:b.tilt, as:a&&a.state, bs:b&&b.state, ahp:a&&a.hp, bhp:b&&b.hp };
   }
 };
 
