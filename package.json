@@ -1,0 +1,15 @@
+{
+  "name": "hitfeel-demo",
+  "version": "1.0.0",
+  "description": "用最简单几何图形（圆头 + 胶囊身体）做的格斗打击感 Demo。   落实笔记《用最简单图形做出打击感》要点：蓄力→出拳→命中→击退→回收、攻受同步 hitstop、命中特效、镜头震动、受击闪白/挤压、地面滑痕、血条与简单 AI。可开关特效验证「关特效因果仍成立」。",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "wrangler": "^4.155.0"
+  }
+}
