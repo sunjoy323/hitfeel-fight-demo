@@ -197,33 +197,36 @@ function resetFight() {
 function spawnHitFX(x, y, scale, lifeFrames) {
   if (!fxOn || variant === "bare") return;
   const life = Math.max(4, Math.round(lifeFrames * SHOW.fxLifeScale));
-  // core flash
-  fx.push({ t: "core", x, y, life, max: life, r: 18 * scale });
-  // rings
-  fx.push({ t: "ring", x, y, life, max: life, maxR: 70 * scale, w: 3.5 });
-  fx.push({ t: "ring", x, y, life: Math.round(life * 0.85), max: Math.round(life * 0.85), maxR: 42 * scale, w: 2.2 });
+  // bright core + secondary bloom (原文终版大白黄闪光)
+  fx.push({ t: "core", x, y, life, max: life, r: 34 * scale });
+  fx.push({ t: "core", x, y, life: Math.round(life * 0.55), max: Math.round(life * 0.55), r: 58 * scale });
+  // rings — outer big + inner tight
+  fx.push({ t: "ring", x, y, life, max: life, maxR: 110 * scale, w: 4.5 });
+  fx.push({ t: "ring", x, y, life: Math.round(life * 0.9), max: Math.round(life * 0.9), maxR: 68 * scale, w: 3.2 });
+  fx.push({ t: "ring", x, y, life: Math.round(life * 0.7), max: Math.round(life * 0.7), maxR: 36 * scale, w: 2.4 });
   // square particles
-  const n = Math.round(10 * scale);
+  const n = Math.round(16 * scale);
   for (let i = 0; i < n; i++) {
-    const a = -Math.PI * 0.15 + Math.random() * Math.PI * 1.3 + (Math.random() < 0.5 ? 0 : Math.PI);
-    const sp = (180 + Math.random() * 280) * scale;
+    const a = Math.random() * Math.PI * 2;
+    const sp = (220 + Math.random() * 360) * scale;
     fx.push({
       t: "sq", x, y,
-      vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 40,
+      vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 60,
       life: life, max: life,
-      s: 5 + Math.random() * 7 * scale,
-      rot: Math.random() * Math.PI, vr: (Math.random() - 0.5) * 0.4,
-      warm: Math.random() < 0.35
+      s: 6 + Math.random() * 10 * scale,
+      rot: Math.random() * Math.PI, vr: (Math.random() - 0.5) * 0.55,
+      warm: Math.random() < 0.45
     });
   }
-  // radial shards / star lines
-  const rays = Math.round(7 * scale);
+  // radial shards / star lines — denser, longer (终版放射感)
+  const rays = Math.round(14 * scale);
   for (let i = 0; i < rays; i++) {
-    const a = (i / rays) * Math.PI * 2 + Math.random() * 0.2;
+    const a = (i / rays) * Math.PI * 2 + (Math.random() - 0.5) * 0.25;
     fx.push({
       t: "ray", x, y, a,
-      life: Math.round(life * 0.7), max: Math.round(life * 0.7),
-      len: (28 + Math.random() * 36) * scale
+      life: Math.round(life * 0.85), max: Math.round(life * 0.85),
+      len: (48 + Math.random() * 56) * scale,
+      w: 1.8 + Math.random() * 2.2
     });
   }
 }
@@ -404,9 +407,10 @@ function updateShow() {
       const hx = atk.x + atk.facing * (atk.handFront.x);
       const hy = atk.y + atk.handFront.y;
       if (full) {
-        spawnHitFX(hx, hy, 1, SHOW.hitstopEnd - SHOW.strikeEnd);
-        cam.shake = 9;
-        cam.targetZoom = 1.07;
+        spawnHitFX(hx, hy, 1.15, SHOW.hitstopEnd - SHOW.strikeEnd);
+        cam.shake = 10;
+        cam.targetZoom = 1.08;
+        cam.push = atk.facing * 14;
         cam.push = 14;
         vic.flash = 5;
         sfxHit(true);
@@ -750,9 +754,13 @@ function drawFX() {
   for (const p of fx) {
     const k = Math.max(0, p.life / p.max);
     if (p.t === "core") {
-      ctx.globalAlpha = k * 0.85;
-      ctx.fillStyle = COL.fxCore;
-      ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (0.6 + 0.4 * k), 0, Math.PI * 2); ctx.fill();
+      const grd = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * (0.7 + 0.5 * k));
+      grd.addColorStop(0, `rgba(255,255,255,${0.95 * k})`);
+      grd.addColorStop(0.35, `rgba(255,220,120,${0.75 * k})`);
+      grd.addColorStop(1, `rgba(253,103,56,0)`);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = grd;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (0.7 + 0.5 * k), 0, Math.PI * 2); ctx.fill();
     } else if (p.t === "ring") {
       const r = (1 - k) * p.maxR;
       ctx.globalAlpha = k * 0.9;
@@ -772,12 +780,20 @@ function drawFX() {
       ctx.fillRect(-p.s / 2, -p.s / 2, p.s, p.s);
       ctx.restore();
     } else if (p.t === "ray") {
-      ctx.globalAlpha = k * 0.95;
+      ctx.globalAlpha = k * 0.98;
       ctx.strokeStyle = COL.fx;
-      ctx.lineWidth = 2;
-      const len = p.len * (0.5 + 0.5 * k);
+      ctx.lineWidth = p.w || 2.5;
+      const len = p.len * (0.55 + 0.45 * k);
       ctx.beginPath();
-      ctx.moveTo(p.x + Math.cos(p.a) * 6, p.y + Math.sin(p.a) * 6);
+      ctx.moveTo(p.x + Math.cos(p.a) * 4, p.y + Math.sin(p.a) * 4);
+      ctx.lineTo(p.x + Math.cos(p.a) * len, p.y + Math.sin(p.a) * len);
+      ctx.stroke();
+      // warm tip
+      ctx.globalAlpha = k * 0.55;
+      ctx.strokeStyle = COL.fxWarm;
+      ctx.lineWidth = (p.w || 2.5) * 0.6;
+      ctx.beginPath();
+      ctx.moveTo(p.x + Math.cos(p.a) * len * 0.55, p.y + Math.sin(p.a) * len * 0.55);
       ctx.lineTo(p.x + Math.cos(p.a) * len, p.y + Math.sin(p.a) * len);
       ctx.stroke();
     }
