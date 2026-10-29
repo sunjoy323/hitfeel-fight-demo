@@ -4,95 +4,77 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
-<title>Hit Feel Fight — 简单图形打击感 Demo</title>
+<title>Hit Feel — 终版对标 Demo</title>
 <style>
   :root { color-scheme: dark; }
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: none; }
-  html, body {
-    margin: 0; height: 100%; background: #0b0e14; color: #e8ecf4;
-    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-    overflow: hidden; user-select: none;
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: none; user-select: none; }
+  html, body { margin:0; height:100%; background:#07080c; color:#e8ecf4;
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; overflow:hidden; }
+  #wrap { position:relative; width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  canvas { display:block; width:100%; max-width:960px; max-height:58vh; background:#090a0f;
+    border-radius:10px; box-shadow:0 0 0 1px #1e2430, 0 18px 40px rgba(0,0,0,.5); }
+  #topbar { width:min(960px,100%); padding:8px 10px 4px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; justify-content:space-between; }
+  #topbar .modes, #topbar .opts { display:flex; flex-wrap:wrap; gap:6px; }
+  button.tb {
+    font-size:12px; padding:7px 11px; border-radius:999px; border:1px solid #3b4a63;
+    background:rgba(18,24,38,.9); color:#e8ecf4;
   }
-  #wrap {
-    position: relative; width: 100%; height: 100%;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  button.tb.on { border-color:#fd6738; color:#ffb39a; }
+  button.tb.cyan.on { border-color:#33bbfe; color:#9ad9ff; }
+  #hud { position:absolute; top:52px; left:50%; transform:translateX(-50%); width:min(960px,100%);
+    padding:0 12px; display:none; justify-content:space-between; gap:8px; pointer-events:none; z-index:2; }
+  #hud.show { display:flex; }
+  .barbox { flex:1; max-width:42%; }
+  .barbox .name { font-size:11px; opacity:.8; margin-bottom:2px; }
+  .bar { height:12px; border-radius:6px; background:#141820; border:1px solid #2a3344; overflow:hidden; }
+  .bar>i { display:block; height:100%; background:linear-gradient(90deg,#33bbfe,#7dd3fc); }
+  .barbox.right .name { text-align:right; }
+  .barbox.right .bar>i { float:right; background:linear-gradient(90deg,#fd6738,#fb923c); }
+  #label {
+    position:absolute; top:14%; left:50%; transform:translateX(-50%); z-index:3; pointer-events:none;
+    font-size:15px; font-weight:700; letter-spacing:.06em; text-shadow:0 2px 10px #000; opacity:.95;
   }
-  canvas {
-    display: block; width: 100%; max-width: 960px; max-height: 62vh;
-    background: #121826; border-radius: 12px;
-    box-shadow: 0 0 0 1px #243044, 0 20px 50px rgba(0,0,0,.45);
-  }
-  #hud {
-    position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
-    width: min(960px, 100%); padding: 0 10px; pointer-events: none;
-    display: flex; justify-content: space-between; gap: 8px; z-index: 2;
-  }
-  .barbox { flex: 1; max-width: 42%; }
-  .barbox .name { font-size: 12px; opacity: .85; margin-bottom: 3px; }
-  .bar {
-    height: 14px; border-radius: 7px; background: #1a2233;
-    border: 1px solid #334155; overflow: hidden;
-  }
-  .bar > i { display: block; height: 100%; width: 100%; transform-origin: left center;
-    background: linear-gradient(90deg,#22c55e,#84cc16); transition: width .08s linear; }
-  .barbox.right .name { text-align: right; }
-  .barbox.right .bar > i { transform-origin: right center; background: linear-gradient(90deg,#f97316,#ef4444); float: right; }
-  #centerHint {
-    position: absolute; top: 12%; left: 50%; transform: translateX(-50%);
-    font-size: 22px; font-weight: 700; letter-spacing: .04em; text-shadow: 0 2px 12px #000;
-    opacity: 0; transition: opacity .2s; z-index: 3; pointer-events: none;
-  }
-  #toggles {
-    position: absolute; top: 8px; right: 10px; z-index: 5;
-    display: flex; flex-direction: column; gap: 6px; align-items: flex-end;
-  }
-  #toggles button, #restart {
-    pointer-events: auto; font-size: 12px; padding: 7px 10px; border-radius: 999px;
-    border: 1px solid #3b4a63; background: rgba(18,24,38,.85); color: #e8ecf4;
-  }
-  #toggles button.on { border-color: #38bdf8; color: #7dd3fc; }
-  #toggles button.off { opacity: .65; }
-  #controls {
-    width: min(960px, 100%); padding: 10px 12px calc(12px + env(safe-area-inset-bottom));
-    display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: end;
-  }
-  .pad { display: flex; gap: 10px; align-items: center; }
-  .pad.right { justify-content: flex-end; flex-wrap: wrap; }
+  #controls { width:min(960px,100%); padding:8px 12px calc(10px + env(safe-area-inset-bottom));
+    display:none; grid-template-columns:1fr 1fr; gap:10px; align-items:end; }
+  #controls.show { display:grid; }
+  .pad { display:flex; gap:10px; align-items:center; }
+  .pad.right { justify-content:flex-end; flex-wrap:wrap; }
   .btn {
-    width: 64px; height: 64px; border-radius: 50%;
-    border: 2px solid #3b4a63; background: #1a2233; color: #e8ecf4;
-    font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center;
-    box-shadow: inset 0 -3px 0 #0f1522;
+    width:64px; height:64px; border-radius:50%; border:2px solid #3b4a63; background:#141820; color:#e8ecf4;
+    font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center;
   }
-  .btn.rect { width: 72px; border-radius: 16px; }
-  .btn:active, .btn.held { background: #2563eb; border-color: #60a5fa; transform: translateY(1px); }
-  .btn.atk { background: #3b1d2a; border-color: #f472b6; }
-  .btn.atk:active, .btn.atk.held { background: #be185d; }
-  .btn.heavy { background: #3b2410; border-color: #fb923c; }
-  .btn.heavy:active, .btn.heavy.held { background: #c2410c; }
-  .hint {
-    width: min(960px, 100%); padding: 0 12px 6px; font-size: 11px; opacity: .7; text-align: center;
-  }
-  @media (min-width: 700px) {
-    .btn { width: 72px; height: 72px; font-size: 14px; }
-    .btn.rect { width: 84px; }
-  }
+  .btn.rect { width:72px; border-radius:14px; }
+  .btn:active, .btn.held { background:#2563eb; border-color:#60a5fa; }
+  .btn.atk { background:#3b1d14; border-color:#fd6738; }
+  .btn.atk:active, .btn.atk.held { background:#c2410c; }
+  .btn.heavy { background:#1a2a33; border-color:#33bbfe; }
+  .btn.heavy:active, .btn.heavy.held { background:#0369a1; }
+  .hint { width:min(960px,100%); padding:0 12px 4px; font-size:11px; opacity:.65; text-align:center; }
+  @media (min-width:700px){ .btn{width:72px;height:72px;} .btn.rect{width:84px;} }
 </style>
 </head>
 <body>
 <div id="wrap">
+  <div id="topbar">
+    <div class="modes">
+      <button class="tb on" id="modeShow" type="button">展示·终版一拳</button>
+      <button class="tb" id="modeFight" type="button">对战</button>
+    </div>
+    <div class="opts">
+      <button class="tb cyan on" id="verFull" type="button">完整终版</button>
+      <button class="tb" id="verBare" type="button">无反馈</button>
+      <button class="tb on" id="fxBtn" type="button">特效 ON</button>
+      <button class="tb on" id="sfxBtn" type="button">音效 ON</button>
+    </div>
+  </div>
   <div id="hud">
-    <div class="barbox"><div class="name">YOU</div><div class="bar"><i id="hpYou"></i></div></div>
-    <div class="barbox right"><div class="name">AI</div><div class="bar"><i id="hpAi"></i></div></div>
+    <div class="barbox"><div class="name">YOU · 橙</div><div class="bar"><i id="hpYou"></i></div></div>
+    <div class="barbox right"><div class="name">AI · 青</div><div class="bar"><i id="hpAi"></i></div></div>
   </div>
-  <div id="toggles">
-    <button id="fxBtn" class="on" type="button">特效 ON</button>
-    <button id="sfxBtn" class="on" type="button">音效 ON</button>
-    <button id="restart" type="button">重开</button>
-  </div>
-  <div id="centerHint"></div>
+  <div id="label">终版 · 好动作 + 适度特效（×0.65）</div>
   <canvas id="c" width="960" height="540"></canvas>
-  <div class="hint">电脑：A/D 移动 · J 轻拳 · K 重拳 · W/空格 跳/闪 · S/L 格挡 · F 开关特效</div>
+  <div class="hint" id="hintShow">展示模式：自动循环原文终版那一拳 · 可切「无反馈」对照 · F 开关特效</div>
+  <div class="hint" id="hintFight" style="display:none">A/D 移动 · J 轻拳 · K 重拳 · W/空格 跳/闪 · S/L 格挡 · F 特效</div>
   <div id="controls">
     <div class="pad left">
       <button class="btn rect" data-k="left">◀ 左</button>
@@ -111,690 +93,610 @@
 
 const canvas = document.getElementById("c");
 const ctx = canvas.getContext("2d");
-const hpYouEl = document.getElementById("hpYou");
-const hpAiEl = document.getElementById("hpAi");
-const fxBtn = document.getElementById("fxBtn");
-const sfxBtn = document.getElementById("sfxBtn");
-const centerHint = document.getElementById("centerHint");
-
 const W = 960, H = 540;
-const GROUND = 430;
-const GRAVITY = 2200;
+const GROUND = 400;
+const FPS = 60;
 
+// —— Palette from ref frames ——
+const COL = {
+  bg: "#090a0f",
+  grid: "rgba(80,90,110,0.18)",
+  floor: "rgba(200,210,220,0.55)",
+  orange: "#fd6738",
+  orangeDark: "#d44e28",
+  cyan: "#33bbfe",
+  cyanDark: "#1a8fd0",
+  eye: "#0a0c10",
+  fx: "#ffffff",
+  fxWarm: "#ffe08a",
+  fxCore: "#ffcc55",
+};
+
+let mode = "show"; // show | fight
+let variant = "full"; // full | bare
 let fxOn = true;
 let sfxOn = true;
-let comboHits = 0;
-let comboTimer = 0;
+
+// Fixed 60fps frame timeline for showcase punch (终版)
+const SHOW = {
+  idleEnd: 20,
+  windupEnd: 32,   // 12f windup
+  strikeEnd: 35,   // 3f strike
+  hitstopEnd: 46,  // 11f hitstop
+  knockEnd: 70,
+  recoverEnd: 100,
+  loopEnd: 130,
+  hitstopRate: 0.25,
+  fxLifeScale: 0.65,
+};
+
+const AT_L = {
+  windup: 8, active: 3, recover: 14,
+  dmg: 8, kb: 280, hitstop: 8, reach: 70,
+  shake: 5, zoom: 1.03, fxScale: 0.75
+};
+const ATK_H = {
+  windup: 12, active: 3, recover: 22,
+  dmg: 16, kb: 480, hitstop: 11, reach: 78,
+  shake: 9, zoom: 1.06, fxScale: 1
+};
+
+// —— Entities ——
+function makeChar(x, color, colorDark, facing) {
+  return {
+    x, y: GROUND, vx: 0, vy: 0, facing,
+    color, colorDark,
+    // proportions (ref ~40x45 body in 240 half → scale ~2.2 for 960)
+    bodyW: 92, bodyH: 88, headR: 24, handR: 18,
+    tilt: 0, // radians
+    squashX: 1, squashY: 1,
+    flash: 0,
+    // hands local offsets (facing-relative)
+    handFront: { x: 28, y: -48 }, // punching hand
+    handBack: { x: -22, y: -42 },
+    punchExtend: 0, // 0..1
+    state: "idle",
+    frame: 0,
+    hitstop: 0,
+    invuln: 0,
+    hp: 100, maxHp: 100,
+    blocking: false,
+    onGround: true,
+    attack: null,
+    hitDone: false,
+  };
+}
+
+let atk, vic; // showcase
+let you, ai;  // fight
+let fx = [];
+let dust = [];
+let cam = { x: 0, y: 0, shake: 0, zoom: 1, targetZoom: 1, push: 0 };
+let showFrame = 0;
+let showHitFired = false;
 let roundOver = false;
-let hintTimer = 0;
+let paused = false;
 
-// —— Camera ——
-const cam = { x: 0, y: 0, shake: 0, zoom: 1, targetZoom: 1, push: 0 };
-
-// —— Particles / FX ——
-const fx = [];
-const skids = [];
-
-function addRing(x, y, life, maxR, color) {
-  if (!fxOn) return;
-  fx.push({ t: "ring", x, y, life, maxLife: life, maxR, color, a: 1 });
+function resetShow() {
+  atk = makeChar(380, COL.orange, COL.orangeDark, 1);
+  vic = makeChar(560, COL.cyan, COL.cyanDark, -1);
+  fx = []; dust = [];
+  cam = { x: 0, y: 0, shake: 0, zoom: 1, targetZoom: 1, push: 0 };
+  showFrame = 0; showHitFired = false;
 }
-function addSparks(x, y, n, heavy) {
-  if (!fxOn) return;
+function resetFight() {
+  you = makeChar(320, COL.orange, COL.orangeDark, 1);
+  ai = makeChar(640, COL.cyan, COL.cyanDark, -1);
+  fx = []; dust = [];
+  cam = { x: 0, y: 0, shake: 0, zoom: 1, targetZoom: 1, push: 0 };
+  roundOver = false;
+  updateHp();
+}
+
+// —— FX: rings, square particles, radial shards (原文风格) ——
+function spawnHitFX(x, y, scale, lifeFrames) {
+  if (!fxOn || variant === "bare") return;
+  const life = Math.max(4, Math.round(lifeFrames * SHOW.fxLifeScale));
+  // core flash
+  fx.push({ t: "core", x, y, life, max: life, r: 18 * scale });
+  // rings
+  fx.push({ t: "ring", x, y, life, max: life, maxR: 70 * scale, w: 3.5 });
+  fx.push({ t: "ring", x, y, life: Math.round(life * 0.85), max: Math.round(life * 0.85), maxR: 42 * scale, w: 2.2 });
+  // square particles
+  const n = Math.round(10 * scale);
   for (let i = 0; i < n; i++) {
-    const a = Math.random() * Math.PI * 2;
-    const sp = (heavy ? 280 : 180) * (0.5 + Math.random());
+    const a = -Math.PI * 0.15 + Math.random() * Math.PI * 1.3 + (Math.random() < 0.5 ? 0 : Math.PI);
+    const sp = (180 + Math.random() * 280) * scale;
     fx.push({
-      t: "spark", x, y,
-      vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 80,
-      life: 0.12 + Math.random() * 0.18,
-      maxLife: 0.25, r: heavy ? 3.5 : 2.2,
-      color: heavy ? "#ffd28a" : "#fff1c1"
+      t: "sq", x, y,
+      vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 40,
+      life: life, max: life,
+      s: 5 + Math.random() * 7 * scale,
+      rot: Math.random() * Math.PI, vr: (Math.random() - 0.5) * 0.4,
+      warm: Math.random() < 0.35
+    });
+  }
+  // radial shards / star lines
+  const rays = Math.round(7 * scale);
+  for (let i = 0; i < rays; i++) {
+    const a = (i / rays) * Math.PI * 2 + Math.random() * 0.2;
+    fx.push({
+      t: "ray", x, y, a,
+      life: Math.round(life * 0.7), max: Math.round(life * 0.7),
+      len: (28 + Math.random() * 36) * scale
     });
   }
 }
-function addDebris(x, y, n) {
-  if (!fxOn) return;
-  for (let i = 0; i < n; i++) {
-    fx.push({
-      t: "debris", x, y,
-      vx: (Math.random() - 0.5) * 320,
-      vy: -120 - Math.random() * 220,
-      life: 0.35 + Math.random() * 0.25,
-      maxLife: 0.6, rot: Math.random() * 6, vr: (Math.random() - 0.5) * 12,
-      color: "#94a3b8", w: 4 + Math.random() * 5, h: 2 + Math.random() * 3
+function spawnDust(x) {
+  if (!fxOn || variant === "bare") return;
+  for (let i = 0; i < 3; i++) {
+    dust.push({
+      x: x + (Math.random() - 0.5) * 20,
+      y: GROUND - 4,
+      vx: (Math.random() - 0.5) * 40,
+      life: 18 + Math.random() * 10,
+      max: 28,
+      s: 3 + Math.random() * 4
     });
   }
 }
-function addSkid(x) {
-  if (!fxOn) return;
-  skids.push({ x, life: 0.9, w: 18 + Math.random() * 20 });
-}
 
-// —— Audio (optional WebAudio) ——
+// —— Audio ——
 let ac = null;
 function ensureAudio() {
-  if (!ac) {
-    const AC = window.AudioContext || window.webkitAudioContext;
-    if (AC) ac = new AC();
-  }
+  if (!ac) { const AC = window.AudioContext || window.webkitAudioContext; if (AC) ac = new AC(); }
   if (ac && ac.state === "suspended") ac.resume();
 }
-function beepHit(heavy) {
-  if (!sfxOn || !ac) return;
+function sfxHit(heavy) {
+  if (!sfxOn || !ac || variant === "bare") return;
   const t0 = ac.currentTime;
-  const o = ac.createOscillator();
-  const g = ac.createGain();
+  const o = ac.createOscillator(); const g = ac.createGain();
   o.type = "square";
-  o.frequency.setValueAtTime(heavy ? 90 : 140, t0);
-  o.frequency.exponentialRampToValueAtTime(heavy ? 40 : 70, t0 + 0.08);
+  o.frequency.setValueAtTime(heavy ? 88 : 130, t0);
+  o.frequency.exponentialRampToValueAtTime(heavy ? 36 : 60, t0 + 0.07);
   g.gain.setValueAtTime(0.0001, t0);
-  g.gain.exponentialRampToValueAtTime(heavy ? 0.22 : 0.12, t0 + 0.01);
-  g.gain.exponentialRampToValueAtTime(0.0001, t0 + (heavy ? 0.16 : 0.09));
-  o.connect(g); g.connect(ac.destination);
-  o.start(t0); o.stop(t0 + 0.18);
-  // noise burst
+  g.gain.exponentialRampToValueAtTime(heavy ? 0.2 : 0.11, t0 + 0.008);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + (heavy ? 0.14 : 0.08));
+  o.connect(g); g.connect(ac.destination); o.start(t0); o.stop(t0 + 0.16);
   const n = ac.createBufferSource();
-  const buf = ac.createBuffer(1, ac.sampleRate * 0.05, ac.sampleRate);
+  const buf = ac.createBuffer(1, ac.sampleRate * 0.04, ac.sampleRate);
   const d = buf.getChannelData(0);
   for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
-  const ng = ac.createGain();
-  ng.gain.value = heavy ? 0.15 : 0.08;
+  const ng = ac.createGain(); ng.gain.value = heavy ? 0.14 : 0.07;
   n.buffer = buf; n.connect(ng); ng.connect(ac.destination); n.start(t0);
 }
 
 // —— Input ——
-const keys = { left: false, right: false, jump: false, light: false, heavy: false, block: false };
-const pressed = { light: false, heavy: false, jump: false };
-const just = { light: false, heavy: false, jump: false };
-
-const keyMap = {
-  a: "left", ArrowLeft: "left",
-  d: "right", ArrowRight: "right",
-  w: "jump", " ": "jump", ArrowUp: "jump",
-  j: "light",
-  k: "heavy",
-  s: "block", ArrowDown: "block", l: "block"
-};
-
+const keys = { left:0, right:0, jump:0, light:0, heavy:0, block:0 };
+const just = { light:0, heavy:0, jump:0 };
+const map = { a:"left", ArrowLeft:"left", d:"right", ArrowRight:"right",
+  w:"jump", " ":"jump", ArrowUp:"jump", j:"light", k:"heavy", s:"block", l:"block", ArrowDown:"block" };
 window.addEventListener("keydown", e => {
   ensureAudio();
   if (e.key === "f" || e.key === "F") { toggleFx(); return; }
-  const k = keyMap[e.key];
-  if (!k) return;
-  e.preventDefault();
-  if ((k === "light" || k === "heavy" || k === "jump") && !keys[k]) just[k] = true;
-  keys[k] = true;
+  const k = map[e.key]; if (!k) return; e.preventDefault();
+  if ((k==="light"||k==="heavy"||k==="jump") && !keys[k]) just[k]=1;
+  keys[k]=1;
 });
-window.addEventListener("keyup", e => {
-  const k = keyMap[e.key];
-  if (k) keys[k] = false;
+window.addEventListener("keyup", e => { const k=map[e.key]; if(k) keys[k]=0; });
+document.querySelectorAll("#controls .btn").forEach(el => {
+  const k = el.dataset.k;
+  const down = ev => { ev.preventDefault(); ensureAudio(); el.classList.add("held");
+    if ((k==="light"||k==="heavy"||k==="jump") && !keys[k]) just[k]=1; keys[k]=1; };
+  const up = ev => { ev.preventDefault(); el.classList.remove("held"); keys[k]=0; };
+  el.addEventListener("pointerdown", down); el.addEventListener("pointerup", up);
+  el.addEventListener("pointercancel", up); el.addEventListener("pointerleave", up);
 });
-
-function bindTouch(el, k) {
-  const down = ev => {
-    ev.preventDefault(); ensureAudio();
-    el.classList.add("held");
-    if ((k === "light" || k === "heavy" || k === "jump") && !keys[k]) just[k] = true;
-    keys[k] = true;
-  };
-  const up = ev => {
-    ev.preventDefault();
-    el.classList.remove("held");
-    keys[k] = false;
-  };
-  el.addEventListener("pointerdown", down);
-  el.addEventListener("pointerup", up);
-  el.addEventListener("pointercancel", up);
-  el.addEventListener("pointerleave", up);
-}
-document.querySelectorAll("#controls .btn").forEach(b => bindTouch(b, b.dataset.k));
-
-fxBtn.onclick = () => { toggleFx(); };
-sfxBtn.onclick = () => {
-  sfxOn = !sfxOn;
-  sfxBtn.textContent = sfxOn ? "音效 ON" : "音效 OFF";
-  sfxBtn.className = sfxOn ? "on" : "off";
-  ensureAudio();
-};
-document.getElementById("restart").onclick = () => resetRound();
 
 function toggleFx() {
   fxOn = !fxOn;
-  fxBtn.textContent = fxOn ? "特效 ON" : "特效 OFF（验因果）";
-  fxBtn.className = fxOn ? "on" : "off";
-  if (!fxOn) { fx.length = 0; skids.length = 0; }
-  showHint(fxOn ? "特效开启" : "特效关闭 — 动作链仍应成立");
+  document.getElementById("fxBtn").textContent = fxOn ? "特效 ON" : "特效 OFF";
+  document.getElementById("fxBtn").className = "tb" + (fxOn ? " on" : "");
+  if (!fxOn) { fx.length = 0; dust.length = 0; }
 }
-
-function showHint(t) {
-  centerHint.textContent = t;
-  centerHint.style.opacity = "1";
-  hintTimer = 1.2;
-}
-
-// —— Fighter ——
-function makeFighter(x, facing, color, isPlayer) {
-  return {
-    x, y: GROUND, vx: 0, vy: 0,
-    facing, // 1 right, -1 left
-    w: 36, h: 78, // capsule approx
-    hp: 100, maxHp: 100,
-    color, isPlayer,
-    state: "idle",
-    stateT: 0,
-    animT: 0,
-    attacking: false,
-    attackKind: null, // light | heavy
-    hitConnected: false,
-    hitbox: null,
-    blocking: false,
-    onGround: true,
-    flash: 0,
-    squash: 1, // y scale
-    stretch: 1, // x scale
-    hitstopRemain: 0,
-    hitstopRate: 1, // local slow during hitstop (0.25 etc)
-    invuln: 0,
-    comboTaken: 0,
-    aiThink: 0,
-    aiIntent: "idle",
-    punchArm: 0, // 0..1 extension visual
-    windupPose: 0,
-    recoverPose: 0,
-  };
-}
-
-let you, ai;
-let hitstopGlobal = 0; // shared freeze clock
-let hitstopSlow = 0.25;
-
-function resetRound() {
-  you = makeFighter(260, 1, "#60a5fa", true);
-  ai = makeFighter(700, -1, "#f97316", false);
-  fx.length = 0; skids.length = 0;
-  cam.shake = 0; cam.zoom = 1; cam.targetZoom = 1; cam.push = 0;
-  comboHits = 0; comboTimer = 0; roundOver = false;
-  hitstopGlobal = 0;
-  showHint("Fight!");
-  updateHpBars();
-}
-
-function updateHpBars() {
-  hpYouEl.style.width = Math.max(0, you.hp / you.maxHp * 100) + "%";
-  hpAiEl.style.width = Math.max(0, ai.hp / ai.maxHp * 100) + "%";
-}
-
-// Attack definitions: 蓄力 → 出拳 → 命中窗口 → 回收
-const ATKS = {
-  light: {
-    windup: 0.08, active: 0.08, recover: 0.16,
-    dmg: 7, kb: 220, kbUp: 80,
-    hitstop: 0.09, reach: 58, tall: 28,
-    shake: 4, zoom: 1.04
-  },
-  heavy: {
-    windup: 0.18, active: 0.1, recover: 0.28,
-    dmg: 16, kb: 420, kbUp: 180,
-    hitstop: 0.18, reach: 70, tall: 34,
-    shake: 9, zoom: 1.08
-  }
+document.getElementById("sfxBtn").onclick = () => {
+  sfxOn = !sfxOn; ensureAudio();
+  sfxBtn.textContent = sfxOn ? "音效 ON" : "音效 OFF";
+  sfxBtn.className = "tb" + (sfxOn ? " on" : "");
 };
+document.getElementById("modeShow").onclick = () => setMode("show");
+document.getElementById("modeFight").onclick = () => setMode("fight");
+document.getElementById("verFull").onclick = () => setVariant("full");
+document.getElementById("verBare").onclick = () => setVariant("bare");
 
-function canAct(f) {
-  return f.hitstopRemain <= 0 &&
-    (f.state === "idle" || f.state === "walk" || f.state === "jump") &&
-    !roundOver;
+function setMode(m) {
+  mode = m;
+  document.getElementById("modeShow").className = "tb" + (m==="show"?" on":"");
+  document.getElementById("modeFight").className = "tb" + (m==="fight"?" on":"");
+  document.getElementById("hud").classList.toggle("show", m==="fight");
+  document.getElementById("controls").classList.toggle("show", m==="fight");
+  document.getElementById("hintShow").style.display = m==="show" ? "" : "none";
+  document.getElementById("hintFight").style.display = m==="fight" ? "" : "none";
+  document.getElementById("verFull").style.display = m==="show" ? "" : "none";
+  document.getElementById("verBare").style.display = m==="show" ? "" : "none";
+  if (m==="show") resetShow(); else resetFight();
+  updateLabel();
+}
+function setVariant(v) {
+  variant = v;
+  document.getElementById("verFull").className = "tb cyan" + (v==="full"?" on":"");
+  document.getElementById("verBare").className = "tb" + (v==="bare"?" on":"");
+  resetShow();
+  updateLabel();
+}
+function updateLabel() {
+  const el = document.getElementById("label");
+  if (mode === "fight") el.textContent = "对战";
+  else el.textContent = variant === "full"
+    ? "终版 · 好动作 + 适度特效（×0.65）"
+    : "对照 · 无反馈（同动作，关卡帧/特效/镜头）";
+}
+function updateHp() {
+  if (!you) return;
+  document.getElementById("hpYou").style.width = Math.max(0, you.hp/you.maxHp*100) + "%";
+  document.getElementById("hpAi").style.width = Math.max(0, ai.hp/ai.maxHp*100) + "%";
 }
 
-function startAttack(f, kind) {
-  if (!canAct(f)) return;
-  if (!f.onGround && kind === "heavy") return; // keep simple
-  f.state = "attack";
-  f.stateT = 0;
-  f.attackKind = kind;
-  f.hitConnected = false;
-  f.attacking = true;
-  f.blocking = false;
-  f.punchArm = 0;
-  f.windupPose = 0;
+// —— Pose helpers ——
+function setPoseIdle(c) {
+  c.tilt = 0; c.squashX = 1; c.squashY = 1; c.punchExtend = 0;
+  c.handFront = { x: 42, y: -44 }; c.handBack = { x: -38, y: -40 };
+}
+function setPoseWindup(c, p) { // p 0..1 — lean BACK (canvas +rot = forward when facing right)
+  c.tilt = -0.72 * p;
+  c.squashX = 1 + 0.18 * p; c.squashY = 1 - 0.22 * p;
+  c.punchExtend = -0.45 * p;
+  c.handFront = { x: 6 - 42 * p, y: -48 - 4 * p };
+  c.handBack = { x: -22 + 10 * p, y: -34 };
+}
+function setPoseStrike(c, p) { // p 0..1 through strike
+  c.tilt = 0.48;
+  c.squashX = 1.22; c.squashY = 0.84;
+  c.punchExtend = 0.15 + 1.0 * p;
+  c.handFront = { x: 40 + 78 * p, y: -48 };
+  c.handBack = { x: -34, y: -34 };
+  c.x += c.facing * 3.2; // lunge
+}
+function setPoseHitAttacker(c) {
+  c.tilt = 0.42;
+  c.squashX = 1.15; c.squashY = 0.88;
+  c.punchExtend = 1;
+  c.handFront = { x: 108, y: -48 };
+  c.handBack = { x: -30, y: -34 };
+}
+function setPoseHurt(c, p) { // p 0 at hit ..1 later
+  c.tilt = -0.62; // lean back in local space
+  c.squashX = 0.68 + 0.32 * Math.min(1, p * 2);
+  c.squashY = 1.28 - 0.28 * Math.min(1, p * 2);
+  c.handFront = { x: 26, y: -42 }; c.handBack = { x: -26, y: -42 };
+  c.punchExtend = 0;
 }
 
-function startBlock(f, on) {
-  if (f.hitstopRemain > 0) return;
-  if (on && (f.state === "idle" || f.state === "walk" || f.state === "block")) {
-    f.state = "block";
-    f.blocking = true;
-    f.attacking = false;
-  } else if (!on && f.state === "block") {
-    f.state = "idle";
-    f.blocking = false;
-  }
-}
-
-function startJump(f) {
-  if (!canAct(f) || !f.onGround) {
-    // air dodge / flash
-    if (f.invuln <= 0 && f.hitstopRemain <= 0 && (f.state === "jump" || f.state === "idle" || f.state === "walk")) {
-      f.invuln = 0.22;
-      f.vx = f.facing * -280;
-      f.state = "dodge";
-      f.stateT = 0;
-    }
+// —— Showcase update (frame counted) ——
+function updateShow() {
+  showFrame++;
+  if (showFrame > SHOW.loopEnd) {
+    resetShow();
     return;
   }
-  f.vy = -620;
-  f.onGround = false;
-  f.state = "jump";
-  f.blocking = false;
-}
+  const f = showFrame;
+  const full = variant === "full";
 
-function faceOpponent(a, b) {
-  a.facing = a.x < b.x ? 1 : -1;
-}
+  // camera ease toward mid
+  const mid = (atk.x + vic.x) / 2;
+  cam.x += (mid - W / 2 - cam.x) * 0.08;
 
-function bodyBox(f) {
-  return { x: f.x - f.w / 2, y: f.y - f.h, w: f.w, h: f.h };
-}
-
-function hitBox(f, def) {
-  const x = f.facing > 0 ? f.x + 8 : f.x - 8 - def.reach;
-  return { x, y: f.y - f.h * 0.62, w: def.reach, h: def.tall };
-}
-
-function aabb(a, b) {
-  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
-}
-
-function applyHit(attacker, defender, def) {
-  const hx = attacker.facing > 0 ? attacker.x + def.reach * 0.7 : attacker.x - def.reach * 0.7;
-  const hy = attacker.y - attacker.h * 0.55;
-
-  // block?
-  const facingIn = Math.sign(attacker.x - defender.x) === defender.facing ||
-    (defender.blocking && Math.sign(attacker.x - defender.x) !== 0);
-  if (defender.blocking && defender.facing === -attacker.facing) {
-    // chip + push
-    defender.hp = Math.max(0, defender.hp - def.dmg * 0.15);
-    defender.vx = attacker.facing * def.kb * 0.35;
-    attacker.vx = -attacker.facing * 80;
-    triggerHitstop(attacker, defender, def.hitstop * 0.55, true);
-    addRing(hx, hy, def.hitstop * 0.55, 28, "#93c5fd");
-    addSparks(hx, hy, 4, false);
-    beepHit(false);
-    cam.shake = Math.max(cam.shake, def.shake * 0.4);
-    updateHpBars();
-    return;
-  }
-
-  if (defender.invuln > 0) return;
-
-  defender.hp = Math.max(0, defender.hp - def.dmg);
-  defender.state = "hurt";
-  defender.stateT = 0;
-  defender.attacking = false;
-  defender.blocking = false;
-  defender.flash = 0.12;
-  defender.squash = 0.72;
-  defender.stretch = 1.35;
-  defender.vx = attacker.facing * def.kb;
-  defender.vy = -def.kbUp * (defender.onGround ? 1 : 0.6);
-  defender.onGround = false;
-  addSkid(defender.x);
-
-  attacker.hitConnected = true;
-  // attacker punch impact squash
-  attacker.squash = 1.15;
-  attacker.stretch = 0.85;
-
-  comboTimer = 0.8;
-  comboHits++;
-
-  // FX at contact — lifetime tied to hitstop so they clear as hitstop ends
-  const hs = def.hitstop * (comboHits > 3 ? 0.75 : 1);
-  addRing(hx, hy, hs, def.dmg > 10 ? 55 : 36, "#fff7ed");
-  addRing(hx, hy, hs * 0.85, 22, "#fb923c");
-  addSparks(hx, hy, def.dmg > 10 ? 14 : 8, def.dmg > 10);
-  if (def.dmg > 10) addDebris(hx, hy, 6);
-
-  // camera: bind to hit phase; restrain on long combo
-  const restrain = Math.max(0.35, 1 - (comboHits - 1) * 0.12);
-  cam.shake = Math.max(cam.shake, def.shake * restrain);
-  cam.targetZoom = 1 + (def.zoom - 1) * restrain;
-  cam.push = attacker.facing * 10 * restrain;
-
-  triggerHitstop(attacker, defender, hs, false);
-  beepHit(def.dmg > 10);
-  updateHpBars();
-
-  if (defender.hp <= 0) endRound(attacker.isPlayer);
-}
-
-function triggerHitstop(a, b, dur, blocked) {
-  // 攻受同步 hitstop；不完全定死 — local rate 0.22~0.3
-  hitstopGlobal = dur;
-  hitstopSlow = blocked ? 0.35 : 0.22;
-  a.hitstopRemain = dur;
-  b.hitstopRemain = dur;
-  a.hitstopRate = hitstopSlow;
-  b.hitstopRate = hitstopSlow;
-}
-
-function endRound(youWin) {
-  roundOver = true;
-  showHint(youWin ? "YOU WIN" : "AI WINS");
-}
-
-// —— AI ——
-function updateAI(dt) {
-  if (roundOver) return;
-  const f = ai;
-  f.aiThink -= dt;
-  faceOpponent(f, you);
-
-  const dist = Math.abs(f.x - you.x);
-  if (f.aiThink <= 0) {
-    f.aiThink = 0.18 + Math.random() * 0.25;
-    if (you.attacking && dist < 90 && Math.random() < 0.55) f.aiIntent = "block";
-    else if (dist > 130) f.aiIntent = "approach";
-    else if (dist < 55 && Math.random() < 0.35) f.aiIntent = "retreat";
-    else if (Math.random() < 0.55) f.aiIntent = Math.random() < 0.65 ? "light" : "heavy";
-    else f.aiIntent = "idle";
-  }
-
-  keysAI.left = keysAI.right = keysAI.block = false;
-  if (f.aiIntent === "approach") {
-    if (f.x > you.x) keysAI.left = true; else keysAI.right = true;
-  } else if (f.aiIntent === "retreat") {
-    if (f.x > you.x) keysAI.right = true; else keysAI.left = true;
-  } else if (f.aiIntent === "block") {
-    keysAI.block = true;
-  } else if (f.aiIntent === "light" && canAct(f) && dist < 100) {
-    startAttack(f, "light");
-    f.aiIntent = "idle";
-  } else if (f.aiIntent === "heavy" && canAct(f) && dist < 110) {
-    startAttack(f, "heavy");
-    f.aiIntent = "idle";
-  }
-}
-const keysAI = { left: false, right: false, block: false };
-
-function controlFighter(f, input, dt) {
-  if (f.hitstopRemain > 0) return; // movement frozen-ish; pose still advances slowly outside
-
-  faceOpponent(f, f.isPlayer ? ai : you);
-
-  if (f.isPlayer) {
-    if (just.jump) { startJump(f); just.jump = false; }
-    if (just.light) { startAttack(f, "light"); just.light = false; }
-    if (just.heavy) { startAttack(f, "heavy"); just.heavy = false; }
-    startBlock(f, input.block);
-  } else {
-    startBlock(f, input.block);
-  }
-
-  const moving = (f.state === "idle" || f.state === "walk" || f.state === "jump");
-  let ax = 0;
-  if (moving && !f.blocking) {
-    if (input.left) ax -= 1;
-    if (input.right) ax += 1;
-  }
-  const speed = f.onGround ? 320 : 260;
-  if (ax !== 0) {
-    f.vx = ax * speed;
-    if (f.onGround && f.state !== "attack" && f.state !== "hurt" && f.state !== "dodge") f.state = "walk";
-  } else if (f.onGround && (f.state === "walk" || f.state === "idle")) {
-    f.vx *= 0.7;
-    if (Math.abs(f.vx) < 20) { f.vx = 0; if (f.state === "walk") f.state = "idle"; }
-  }
-}
-
-function updateAttack(f, dt) {
-  if (f.state !== "attack") return;
-  const def = ATKS[f.attackKind];
-  f.stateT += dt;
-  const t = f.stateT;
-  if (t < def.windup) {
-    // 蓄力
-    const p = t / def.windup;
-    f.windupPose = p;
-    f.punchArm = -0.25 * p;
-    f.squash = 1 - 0.08 * p;
-    f.stretch = 1 + 0.1 * p;
-  } else if (t < def.windup + def.active) {
-    // 出拳 active
-    f.windupPose = 1;
-    const p = (t - def.windup) / def.active;
-    f.punchArm = 0.2 + 0.95 * Math.min(1, p * 1.4);
-    f.squash = 1.05;
-    f.stretch = 0.92;
-    if (!f.hitConnected) {
-      const hb = hitBox(f, def);
-      f.hitbox = hb;
-      const foe = f.isPlayer ? ai : you;
-      if (aabb(hb, bodyBox(foe))) {
-        applyHit(f, foe, def);
+  if (f <= SHOW.idleEnd) {
+    setPoseIdle(atk); setPoseIdle(vic);
+    document.getElementById("label").textContent = full
+      ? "终版 · 好动作 + 适度特效（×0.65）" : "对照 · 无反馈";
+  } else if (f <= SHOW.windupEnd) {
+    const p = (f - SHOW.idleEnd) / (SHOW.windupEnd - SHOW.idleEnd);
+    setPoseWindup(atk, p); setPoseIdle(vic);
+    if (full) { cam.targetZoom = 1.02; cam.push = -6; }
+  } else if (f <= SHOW.strikeEnd) {
+    const p = (f - SHOW.windupEnd) / (SHOW.strikeEnd - SHOW.windupEnd);
+    setPoseStrike(atk, p); setPoseIdle(vic);
+  } else if (f <= SHOW.hitstopEnd) {
+    // HIT frame
+    if (!showHitFired) {
+      showHitFired = true;
+      const hx = atk.x + atk.facing * (atk.handFront.x);
+      const hy = atk.y + atk.handFront.y;
+      if (full) {
+        spawnHitFX(hx, hy, 1, SHOW.hitstopEnd - SHOW.strikeEnd);
+        cam.shake = 9;
+        cam.targetZoom = 1.07;
+        cam.push = 14;
+        vic.flash = 5;
+        sfxHit(true);
       }
+      // impact pose
+      setPoseHitAttacker(atk);
+      setPoseHurt(vic, 0);
+      if (full) vic.vx = 9.5; // px per frame-ish during knock
+      else vic.vx = 6;
     }
-  } else if (t < def.windup + def.active + def.recover) {
-    // 回收
-    f.hitbox = null;
-    const p = (t - def.windup - def.active) / def.recover;
-    f.punchArm = 1 - p;
-    f.recoverPose = p;
-    f.squash += (1 - f.squash) * 0.2;
-    f.stretch += (1 - f.stretch) * 0.2;
+    const hsP = (f - SHOW.strikeEnd) / (SHOW.hitstopEnd - SHOW.strikeEnd);
+    if (full) {
+      // low-speed continue
+      atk.handFront.x += 0.35;
+      vic.tilt = -0.5 - 0.05 * hsP;
+      vic.squashX = 0.7 + 0.05 * hsP;
+      // move at 0.25
+      vic.x += vic.vx * SHOW.hitstopRate;
+      atk.x += 0.15;
+    } else {
+      // bare: no freeze, keep moving
+      vic.x += vic.vx;
+      setPoseHurt(vic, hsP);
+    }
+    setPoseHitAttacker(atk);
+  } else if (f <= SHOW.knockEnd) {
+    const p = (f - SHOW.hitstopEnd) / (SHOW.knockEnd - SHOW.hitstopEnd);
+    // recover punch
+    atk.punchExtend = 1 - p;
+    atk.handFront = { x: 100 - 70 * p, y: -50 + 4 * p };
+    atk.tilt = 0.42 * (1 - p);
+    atk.squashX += (1 - atk.squashX) * 0.15;
+    atk.squashY += (1 - atk.squashY) * 0.15;
+    vic.x += vic.vx;
+    vic.vx *= 0.92;
+    setPoseHurt(vic, 0.3 + p * 0.7);
+    if (full && f % 3 === 0 && Math.abs(vic.vx) > 1.5) spawnDust(vic.x);
+    if (full) { cam.targetZoom += (1 - cam.targetZoom) * 0.08; cam.shake *= 0.85; }
   } else {
-    f.state = f.onGround ? "idle" : "jump";
-    f.attacking = false;
-    f.attackKind = null;
-    f.punchArm = 0;
-    f.hitbox = null;
+    const p = Math.min(1, (f - SHOW.knockEnd) / (SHOW.recoverEnd - SHOW.knockEnd));
+    setPoseIdle(atk);
+    atk.tilt *= 1 - p; atk.squashX += (1-atk.squashX)*0.2; atk.squashY += (1-atk.squashY)*0.2;
+    vic.vx *= 0.85;
+    vic.tilt *= 1 - p;
+    vic.squashX += (1-vic.squashX)*0.15;
+    vic.squashY += (1-vic.squashY)*0.15;
+    if (p > 0.95) { setPoseIdle(vic); vic.tilt = 0; }
+    cam.targetZoom += (1 - cam.targetZoom) * 0.1;
+    cam.push *= 0.9;
   }
+
+  // flash countdown
+  if (vic.flash > 0) vic.flash--;
+  tickFX(full);
+  tickCam();
 }
 
-function updateHurt(f, dt) {
-  if (f.state !== "hurt") return;
-  f.stateT += dt;
-  // 击退滑行中
-  if (f.onGround) f.vx *= 0.9;
-  f.squash += (1 - f.squash) * 0.15;
-  f.stretch += (1 - f.stretch) * 0.15;
-  if (f.stateT > 0.35) {
-    f.state = f.onGround ? "idle" : "jump";
-  }
-}
-
-function updateDodge(f, dt) {
-  if (f.state !== "dodge") return;
-  f.stateT += dt;
-  if (f.stateT > 0.25) f.state = f.onGround ? "idle" : "jump";
-}
-
-function physics(f, dt) {
-  // during hitstop, still apply tiny motion (低速续动)
-  const rate = f.hitstopRemain > 0 ? f.hitstopRate : 1;
-  const d = dt * rate;
-
-  f.vy += GRAVITY * d;
-  f.x += f.vx * d;
-  f.y += f.vy * d;
-
-  if (f.y >= GROUND) {
-    f.y = GROUND;
-    if (f.vy > 0) f.vy = 0;
-    f.onGround = true;
-  } else f.onGround = false;
-
-  f.x = Math.max(40, Math.min(W - 40, f.x));
-
-  // separate fighters lightly
-  const other = f.isPlayer ? ai : you;
-  const dx = f.x - other.x;
-  if (Math.abs(dx) < 40 && Math.abs(f.y - other.y) < f.h) {
-    const push = (40 - Math.abs(dx)) * 0.5 * Math.sign(dx || 1);
-    f.x += push;
-  }
-
-  if (f.flash > 0) f.flash -= dt;
-  if (f.invuln > 0) f.invuln -= dt;
-  if (f.hitstopRemain > 0) {
-    f.hitstopRemain -= dt; // real-time countdown
-    // 低速续动：anim / punch arm creep
-    f.animT += dt * f.hitstopRate;
-    if (f.state === "attack" && f.punchArm > 0) f.punchArm += 0.15 * dt * f.hitstopRate;
-  } else {
-    f.animT += dt;
-  }
-
-  // relax squash
-  if (f.state !== "attack" && f.state !== "hurt") {
-    f.squash += (1 - f.squash) * Math.min(1, 10 * d);
-    f.stretch += (1 - f.stretch) * Math.min(1, 10 * d);
-  }
-}
-
-function updateFx(dt) {
-  // FX life ticks in real time so they finish with hitstop
+function tickFX(full) {
+  // FX always tick at full frame rate (even during hitstop) — 原文：特效照常
   for (let i = fx.length - 1; i >= 0; i--) {
     const p = fx[i];
-    p.life -= dt;
-    if (p.t === "spark" || p.t === "debris") {
-      const rate = hitstopGlobal > 0 ? hitstopSlow : 1;
-      p.x += p.vx * dt * rate;
-      p.y += p.vy * dt * rate;
-      p.vy += 600 * dt * rate;
-      if (p.t === "debris") p.rot += p.vr * dt;
+    p.life--;
+    if (p.t === "sq") {
+      p.x += p.vx / FPS * 60 * 0.55;
+      p.y += p.vy / FPS * 60 * 0.55;
+      p.vy += 12;
+      p.rot += p.vr;
     }
     if (p.life <= 0) fx.splice(i, 1);
   }
-  for (let i = skids.length - 1; i >= 0; i--) {
-    skids[i].life -= dt;
-    if (skids[i].life <= 0) skids.splice(i, 1);
+  for (let i = dust.length - 1; i >= 0; i--) {
+    const d = dust[i];
+    d.life--; d.x += d.vx / 60;
+    if (d.life <= 0) dust.splice(i, 1);
   }
 }
+function tickCam() {
+  cam.shake = Math.max(0, cam.shake - 0.55);
+  cam.zoom += (cam.targetZoom - cam.zoom) * 0.15;
+  cam.targetZoom += (1 - cam.targetZoom) * 0.04;
+  cam.push *= 0.9;
+}
 
-function updateCam(dt) {
-  cam.shake = Math.max(0, cam.shake - 28 * dt);
-  cam.zoom += (cam.targetZoom - cam.zoom) * Math.min(1, 8 * dt);
-  cam.targetZoom += (1 - cam.targetZoom) * Math.min(1, 2.5 * dt);
-  cam.push *= Math.max(0, 1 - 6 * dt);
+// —— Fight mode (frame-based attacks) ——
+const keysAI = { left:0, right:0, block:0 };
+let aiThink = 0;
+
+function startAtk(f, heavy) {
+  if (f.hitstop > 0 || f.state === "attack" || f.state === "hurt" || roundOver) return;
+  if (!f.onGround && heavy) return;
+  f.state = "attack";
+  f.frame = 0;
+  f.attack = heavy ? ATK_H : ATK_L;
+  f.hitDone = false;
+  f.blocking = false;
+}
+function bodyBox(f) {
+  return { x: f.x - f.bodyW * 0.45, y: f.y - f.bodyH - f.headR * 0.5, w: f.bodyW * 0.9, h: f.bodyH + f.headR * 0.6 };
+}
+function fistPos(f) {
+  const localX = (f.handFront.x + f.punchExtend * 0) ; // handFront already includes extend in fight
+  return { x: f.x + localX * f.facing, y: f.y + f.handFront.y };
+}
+
+function updateFightChar(f, input, foe) {
+  // face
+  f.facing = f.x < foe.x ? 1 : -1;
+
+  if (f.hitstop > 0) {
+    f.hitstop--;
+    // 0.25 continue
+    if (f.state === "attack") {
+      f.handFront.x += 0.4;
+      f.frame += SHOW.hitstopRate;
+    } else if (f.state === "hurt") {
+      f.x += f.vx * SHOW.hitstopRate;
+      f.frame += SHOW.hitstopRate;
+    }
+    if (f.flash > 0) f.flash--;
+    return;
+  }
+
+  if (f.state === "attack") {
+    f.frame++;
+    const a = f.attack;
+    if (f.frame <= a.windup) {
+      setPoseWindup(f, f.frame / a.windup);
+    } else if (f.frame <= a.windup + a.active) {
+      const p = (f.frame - a.windup) / a.active;
+      setPoseStrike(f, p);
+      if (!f.hitDone) {
+        const fist = { x: f.x + f.handFront.x * f.facing, y: f.y + f.handFront.y, r: f.handR + 4 };
+        const bb = bodyBox(foe);
+        if (fist.x > bb.x && fist.x < bb.x + bb.w && fist.y > bb.y && fist.y < bb.y + bb.h) {
+          applyFightHit(f, foe, a);
+          f.hitDone = true;
+        }
+      }
+    } else if (f.frame <= a.windup + a.active + a.recover) {
+      const p = (f.frame - a.windup - a.active) / a.recover;
+      f.punchExtend = 1 - p;
+      f.handFront = { x: 100 - 70 * p, y: -50 };
+      f.tilt *= 0.85;
+      f.squashX += (1 - f.squashX) * 0.2;
+      f.squashY += (1 - f.squashY) * 0.2;
+    } else {
+      f.state = "idle"; f.attack = null; setPoseIdle(f);
+    }
+    if (f.flash > 0) f.flash--;
+    return;
+  }
+
+  if (f.state === "hurt") {
+    f.frame++;
+    f.x += f.vx; f.vx *= 0.9;
+    setPoseHurt(f, Math.min(1, f.frame / 20));
+    if (f.frame % 3 === 0 && Math.abs(f.vx) > 1.2) spawnDust(f.x);
+    if (f.frame > 28) { f.state = "idle"; setPoseIdle(f); f.vx = 0; }
+    if (f.flash > 0) f.flash--;
+    return;
+  }
+
+  // move
+  if (input.block) {
+    f.blocking = true; f.state = "block";
+    f.handFront = { x: 36, y: -58 }; f.handBack = { x: 18, y: -50 };
+    f.tilt = 0.1 * f.facing;
+  } else {
+    f.blocking = false;
+    let ax = 0;
+    if (input.left) ax -= 1;
+    if (input.right) ax += 1;
+    if (ax) { f.vx = ax * 5.2; f.state = "walk"; }
+    else { f.vx *= 0.75; if (Math.abs(f.vx)<0.2){ f.vx=0; f.state="idle"; setPoseIdle(f);} }
+    f.x += f.vx;
+    if (f.state === "walk") {
+      f.handFront = { x: 30, y: -46 + Math.sin(f.frame*0.4)*3 };
+      f.handBack = { x: -24, y: -40 - Math.sin(f.frame*0.4)*3 };
+      f.frame++;
+    }
+  }
+
+  if (just.jump && f === you) {
+    if (f.onGround) { f.vy = -14; f.onGround = false; }
+    else if (f.invuln <= 0) { f.invuln = 14; f.vx = -f.facing * 6; }
+    just.jump = 0;
+  }
+  if (f === you) {
+    if (just.light) { startAtk(f, false); just.light = 0; }
+    if (just.heavy) { startAtk(f, true); just.heavy = 0; }
+  }
+
+  // gravity
+  f.vy += 0.55; f.y += f.vy;
+  if (f.y >= GROUND) { f.y = GROUND; f.vy = 0; f.onGround = true; }
+  else f.onGround = false;
+  f.x = Math.max(60, Math.min(W - 60, f.x));
+  if (f.invuln > 0) f.invuln--;
+  if (f.flash > 0) f.flash--;
+}
+
+function applyFightHit(attacker, defender, a) {
+  if (defender.invuln > 0) return;
+  if (defender.blocking && defender.facing === -attacker.facing) {
+    defender.hp = Math.max(0, defender.hp - a.dmg * 0.15);
+    defender.vx = attacker.facing * 3;
+    attacker.hitstop = Math.round(a.hitstop * 0.5);
+    defender.hitstop = attacker.hitstop;
+    spawnHitFX(attacker.x + attacker.facing * attacker.handFront.x, attacker.y + attacker.handFront.y, 0.5 * a.fxScale, a.hitstop);
+    cam.shake = a.shake * 0.4;
+    sfxHit(false);
+    updateHp();
+    return;
+  }
+  defender.hp = Math.max(0, defender.hp - a.dmg);
+  defender.state = "hurt"; defender.frame = 0; defender.attack = null;
+  defender.vx = attacker.facing * (a.kb / 50);
+  defender.flash = 5;
+  defender.squashX = 0.7; defender.squashY = 1.25;
+  setPoseHurt(defender, 0);
+  attacker.hitstop = a.hitstop;
+  defender.hitstop = a.hitstop;
+  const hx = attacker.x + attacker.facing * 72;
+  const hy = GROUND - 56;
+  spawnHitFX(hx, hy, a.fxScale, a.hitstop);
+  cam.shake = a.shake; cam.targetZoom = a.zoom; cam.push = attacker.facing * 12;
+  sfxHit(a.dmg > 10);
+  spawnDust(defender.x);
+  updateHp();
+  if (defender.hp <= 0) roundOver = true;
+}
+
+function updateAI() {
+  aiThink--;
+  const dist = Math.abs(ai.x - you.x);
+  keysAI.left = keysAI.right = keysAI.block = 0;
+  if (aiThink <= 0) {
+    aiThink = 12 + Math.floor(Math.random() * 18);
+    if (you.state === "attack" && dist < 120 && Math.random() < 0.5) ai._intent = "block";
+    else if (dist > 140) ai._intent = "approach";
+    else if (dist < 70 && Math.random() < 0.3) ai._intent = "retreat";
+    else if (Math.random() < 0.55) ai._intent = Math.random() < 0.65 ? "light" : "heavy";
+    else ai._intent = "idle";
+  }
+  if (ai._intent === "approach") { if (ai.x > you.x) keysAI.left=1; else keysAI.right=1; }
+  else if (ai._intent === "retreat") { if (ai.x > you.x) keysAI.right=1; else keysAI.left=1; }
+  else if (ai._intent === "block") keysAI.block = 1;
+  else if (ai._intent === "light") { startAtk(ai, false); ai._intent = "idle"; }
+  else if (ai._intent === "heavy") { startAtk(ai, true); ai._intent = "idle"; }
+}
+
+function updateFight() {
+  if (!roundOver) {
+    updateAI();
+    updateFightChar(you, keys, ai);
+    updateFightChar(ai, keysAI, you);
+    // separate
+    if (Math.abs(you.x - ai.x) < 70) {
+      const push = (70 - Math.abs(you.x - ai.x)) * 0.5;
+      if (you.x < ai.x) { you.x -= push; ai.x += push; }
+      else { you.x += push; ai.x -= push; }
+    }
+  }
   const mid = (you.x + ai.x) / 2;
-  cam.x += (mid - W / 2 + cam.push - cam.x) * Math.min(1, 4 * dt);
-  cam.y = 0;
+  cam.x += (mid - W / 2 + cam.push - cam.x) * 0.1;
+  tickFX(true); tickCam();
 }
 
 // —— Draw ——
-function drawBackground() {
-  // floor
-  ctx.fillStyle = "#0f172a";
-  ctx.fillRect(-200, GROUND, W + 400, H);
-  ctx.strokeStyle = "#334155";
+function drawBg() {
+  ctx.fillStyle = COL.bg;
+  ctx.fillRect(-400, -200, W + 800, H + 400);
+  ctx.strokeStyle = COL.grid;
+  ctx.lineWidth = 1;
+  for (let x = -400; x < W + 400; x += 48) {
+    ctx.beginPath(); ctx.moveTo(x, -200); ctx.lineTo(x, H + 200); ctx.stroke();
+  }
+  for (let y = -200; y < H + 200; y += 48) {
+    ctx.beginPath(); ctx.moveTo(-400, y); ctx.lineTo(W + 400, y); ctx.stroke();
+  }
+  // floor line
+  ctx.strokeStyle = COL.floor;
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(-200, GROUND + 0.5);
-  ctx.lineTo(W + 200, GROUND + 0.5);
+  ctx.moveTo(-400, GROUND + 0.5);
+  ctx.lineTo(W + 400, GROUND + 0.5);
   ctx.stroke();
-  // grid
-  ctx.strokeStyle = "rgba(51,65,85,.35)";
-  ctx.lineWidth = 1;
-  for (let x = -200; x < W + 200; x += 40) {
-    ctx.beginPath(); ctx.moveTo(x, GROUND); ctx.lineTo(x, H); ctx.stroke();
-  }
-  // wall marks
-  ctx.fillStyle = "#1e293b";
-  ctx.fillRect(-180, 80, 40, GROUND - 80);
-  ctx.fillRect(W + 140, 80, 40, GROUND - 80);
 }
 
-function drawSkids() {
-  for (const s of skids) {
-    ctx.globalAlpha = Math.max(0, s.life) * 0.45;
-    ctx.strokeStyle = "#64748b";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(s.x - s.w / 2, GROUND - 2);
-    ctx.lineTo(s.x + s.w / 2, GROUND - 2);
-    ctx.stroke();
-  }
-  ctx.globalAlpha = 1;
-}
-
-function drawFighter(f) {
-  ctx.save();
-  ctx.translate(f.x, f.y);
-  ctx.scale(f.facing * f.stretch, f.squash);
-
-  if (f.invuln > 0 && Math.floor(f.animT * 30) % 2 === 0) ctx.globalAlpha = 0.45;
-
-  const bodyCol = f.flash > 0 ? "#ffffff" : f.color;
-  const dark = f.flash > 0 ? "#e2e8f0" : shade(f.color, -40);
-
-  // legs
-  ctx.fillStyle = dark;
-  const legSwing = f.state === "walk" ? Math.sin(f.animT * 12) * 10 : 0;
-  roundRect(-14, -28, 10, 28 + Math.max(0, -legSwing * 0.2), 5);
-  roundRect(4, -28, 10, 28 + Math.max(0, legSwing * 0.2), 5);
-
-  // capsule body
-  ctx.fillStyle = bodyCol;
-  roundRect(-16, -70, 32, 48, 16);
-
-  // head circle
-  ctx.beginPath();
-  ctx.arc(0, -82, 16, 0, Math.PI * 2);
-  ctx.fill();
-  // eye
-  ctx.fillStyle = "#0b1220";
-  ctx.beginPath();
-  ctx.arc(6, -84, 3.2, 0, Math.PI * 2);
-  ctx.fill();
-
-  // arm / punch
-  ctx.strokeStyle = bodyCol;
-  ctx.fillStyle = bodyCol;
-  ctx.lineWidth = 10;
-  ctx.lineCap = "round";
-  let armX = 10 + f.punchArm * 52;
-  let armY = -52;
-  if (f.state === "attack" && f.windupPose < 1 && f.stateT < ATKS[f.attackKind].windup) {
-    // pull back 蓄力
-    armX = 6 - f.windupPose * 18;
-    armY = -58 - f.windupPose * 6;
-  }
-  if (f.blocking) { armX = 18; armY = -60; }
-  ctx.beginPath();
-  ctx.moveTo(4, -55);
-  ctx.lineTo(armX, armY);
-  ctx.stroke();
-  // fist
-  ctx.beginPath();
-  ctx.arc(armX, armY, 9, 0, Math.PI * 2);
-  ctx.fill();
-
-  // hurt squeeze indicator
-  if (f.state === "hurt" && f.stateT < 0.08) {
-    ctx.fillStyle = "rgba(255,255,255,.5)";
-    roundRect(-18, -72, 36, 20, 8);
-  }
-
-  ctx.restore();
-  ctx.globalAlpha = 1;
-
-  // debug hitbox optional — skip
-}
-
-function shade(hex, amt) {
-  const n = hex.replace("#", "");
-  const num = parseInt(n.length === 3 ? n.split("").map(c => c + c).join("") : n, 16);
-  let r = (num >> 16) + amt, g = ((num >> 8) & 255) + amt, b = (num & 255) + amt;
-  r = Math.max(0, Math.min(255, r));
-  g = Math.max(0, Math.min(255, g));
-  b = Math.max(0, Math.min(255, b));
-  return `rgb(${r},${g},${b})`;
-}
-
-function roundRect(x, y, w, h, r) {
+function roundRectPath(x, y, w, h, r) {
   const rr = Math.min(r, w / 2, h / 2);
   ctx.beginPath();
   ctx.moveTo(x + rr, y);
@@ -803,35 +705,88 @@ function roundRect(x, y, w, h, r) {
   ctx.arcTo(x, y + h, x, y, rr);
   ctx.arcTo(x, y, x + w, y, rr);
   ctx.closePath();
-  ctx.fill();
 }
 
-function drawFx() {
+function drawChar(c) {
+  const col = c.flash > 0 ? "#ffffff" : c.color;
+  const dark = c.flash > 0 ? "#e8e8e8" : c.colorDark;
+  if (c.invuln > 0 && (c.invuln % 2 === 0)) ctx.globalAlpha = 0.4;
+
+  // Body + head: facing + tilt + squash (原文圆角方块无腿)
+  ctx.save();
+  ctx.translate(c.x, c.y);
+  ctx.scale(c.facing, 1);
+  ctx.rotate(c.tilt);
+  ctx.scale(c.squashX, c.squashY);
+  ctx.fillStyle = col;
+  roundRectPath(-c.bodyW / 2, -c.bodyH, c.bodyW, c.bodyH, 26);
+  ctx.fill();
+  ctx.strokeStyle = dark;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(0, -c.bodyH - c.headR * 0.35, c.headR, 0, Math.PI * 2);
+  ctx.fillStyle = col;
+  ctx.fill();
+  ctx.fillStyle = COL.eye;
+  ctx.beginPath();
+  ctx.arc(9, -c.bodyH - c.headR * 0.35, 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // Hands: facing only, NO body tilt — keep fist at chest height like原文
+  ctx.save();
+  ctx.translate(c.x, c.y);
+  ctx.scale(c.facing, 1);
+  const hf = c.handFront, hb = c.handBack;
+  ctx.fillStyle = col;
+  ctx.beginPath(); ctx.arc(hb.x, hb.y, c.handR * 0.9, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(hf.x, hf.y, c.handR, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
+
+function drawFX() {
   for (const p of fx) {
-    const k = Math.max(0, p.life / (p.maxLife || 0.2));
-    if (p.t === "ring") {
+    const k = Math.max(0, p.life / p.max);
+    if (p.t === "core") {
+      ctx.globalAlpha = k * 0.85;
+      ctx.fillStyle = COL.fxCore;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (0.6 + 0.4 * k), 0, Math.PI * 2); ctx.fill();
+    } else if (p.t === "ring") {
       const r = (1 - k) * p.maxR;
       ctx.globalAlpha = k * 0.9;
-      ctx.strokeStyle = p.color;
-      ctx.lineWidth = 3 + 3 * k;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, Math.max(1, r), 0, Math.PI * 2);
-      ctx.stroke();
-    } else if (p.t === "spark") {
-      ctx.globalAlpha = k;
-      ctx.fillStyle = p.color;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r * k, 0, Math.PI * 2);
-      ctx.fill();
-    } else if (p.t === "debris") {
+      ctx.strokeStyle = COL.fx;
+      ctx.lineWidth = p.w * (0.6 + 0.4 * k);
+      ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(1, r), 0, Math.PI * 2); ctx.stroke();
+      // warm outer
+      ctx.globalAlpha = k * 0.35;
+      ctx.strokeStyle = COL.fxWarm;
+      ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(1, r + 3), 0, Math.PI * 2); ctx.stroke();
+    } else if (p.t === "sq") {
       ctx.save();
       ctx.globalAlpha = k;
       ctx.translate(p.x, p.y);
       ctx.rotate(p.rot);
-      ctx.fillStyle = p.color;
-      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      ctx.fillStyle = p.warm ? COL.fxWarm : COL.fx;
+      ctx.fillRect(-p.s / 2, -p.s / 2, p.s, p.s);
       ctx.restore();
+    } else if (p.t === "ray") {
+      ctx.globalAlpha = k * 0.95;
+      ctx.strokeStyle = COL.fx;
+      ctx.lineWidth = 2;
+      const len = p.len * (0.5 + 0.5 * k);
+      ctx.beginPath();
+      ctx.moveTo(p.x + Math.cos(p.a) * 6, p.y + Math.sin(p.a) * 6);
+      ctx.lineTo(p.x + Math.cos(p.a) * len, p.y + Math.sin(p.a) * len);
+      ctx.stroke();
     }
+  }
+  for (const d of dust) {
+    const k = d.life / d.max;
+    ctx.globalAlpha = k * 0.5;
+    ctx.fillStyle = "#c8d0dc";
+    ctx.fillRect(d.x - d.s / 2, d.y - d.s / 2, d.s, d.s);
   }
   ctx.globalAlpha = 1;
 }
@@ -839,99 +794,86 @@ function drawFx() {
 function draw() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, W, H);
-
   const sx = (Math.random() - 0.5) * cam.shake * 2;
   const sy = (Math.random() - 0.5) * cam.shake * 2;
   ctx.save();
   ctx.translate(W / 2, H / 2);
   ctx.scale(cam.zoom, cam.zoom);
-  ctx.translate(-W / 2 - cam.x + sx, -H / 2 + sy);
+  ctx.translate(-W / 2 - cam.x + sx + cam.push * 0.3, -H / 2 + sy);
 
-  // sky bg
-  const g = ctx.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0, "#0b1220");
-  g.addColorStop(1, "#162033");
-  ctx.fillStyle = g;
-  ctx.fillRect(cam.x - 100, -50, W + 200, H + 100);
+  drawBg();
+  if (mode === "show") {
+    drawChar(atk); drawChar(vic);
+  } else {
+    drawChar(you); drawChar(ai);
+  }
+  drawFX();
 
-  drawBackground();
-  drawSkids();
-  drawFighter(you);
-  drawFighter(ai);
-  drawFx();
-
-  // FX off banner
-  if (!fxOn) {
+  // hitstop badge
+  if (mode === "show" && variant === "full" && showFrame > SHOW.strikeEnd && showFrame <= SHOW.hitstopEnd) {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.fillStyle = "rgba(15,23,42,.55)";
-    ctx.fillRect(W / 2 - 110, 48, 220, 26);
+    ctx.fillStyle = "rgba(0,0,0,0.65)";
+    ctx.fillRect(W - 168, 56, 150, 28);
+    ctx.fillStyle = "#ffe08a";
+    ctx.font = "bold 13px sans-serif";
+    ctx.fillText("卡帧中 HITSTOP", W - 158, 75);
+  }
+  if (mode === "show" && variant === "bare") {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = "rgba(15,20,30,0.55)";
+    ctx.fillRect(W / 2 - 120, 50, 240, 26);
     ctx.fillStyle = "#94a3b8";
     ctx.font = "12px sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("特效 OFF — 验证动作因果", W / 2, 65);
+    ctx.fillText("无反馈 · 验证动作因果", W / 2, 67);
+    ctx.textAlign = "left";
   }
-
   ctx.restore();
 }
 
-// —— Loop ——
-let last = performance.now();
+// —— Fixed timestep 60fps ——
+let acc = 0, last = performance.now();
+const STEP = 1000 / FPS;
 function frame(now) {
-  let dt = Math.min(0.033, (now - last) / 1000);
-  last = now;
-
-  if (hintTimer > 0) {
-    hintTimer -= dt;
-    if (hintTimer <= 0) centerHint.style.opacity = "0";
-  }
-  if (comboTimer > 0) {
-    comboTimer -= dt;
-    if (comboTimer <= 0) comboHits = 0;
-  }
-
-  // hitstop: world still updates slowly for fighters
-  const simDt = hitstopGlobal > 0 ? dt * hitstopSlow : dt;
-  if (hitstopGlobal > 0) hitstopGlobal = Math.max(0, hitstopGlobal - dt);
-
-  if (!roundOver) {
-    updateAI(dt); // AI decisions in real time
-    controlFighter(you, keys, simDt);
-    controlFighter(ai, keysAI, simDt);
-
-    // attack/hurt update with simDt (slow during hitstop = 低速续动)
-    if (you.hitstopRemain <= 0 || true) {
-      // always call but internal dt slowed via hitstopRemain path in physics
+  acc += now - last; last = now;
+  if (acc > 200) acc = 200;
+  while (acc >= STEP) {
+    if (!paused) {
+      if (mode === "show") updateShow();
+      else updateFight();
     }
-    updateAttack(you, you.hitstopRemain > 0 ? dt * you.hitstopRate : dt);
-    updateAttack(ai, ai.hitstopRemain > 0 ? dt * ai.hitstopRate : dt);
-    updateHurt(you, dt);
-    updateHurt(ai, dt);
-    updateDodge(you, dt);
-    updateDodge(ai, dt);
-    physics(you, dt);
-    physics(ai, dt);
+    acc -= STEP;
   }
-
-  updateFx(dt);
-  updateCam(dt);
   draw();
   requestAnimationFrame(frame);
 }
 
-resetRound();
-// debug hooks for headless capture
+// debug for headless
 window.__HF = {
+  mode: () => mode,
+  variant: () => variant,
+  showFrame: () => showFrame,
+  setMode, setVariant,
+  resetShow, resetFight,
   fxCount: () => fx.length,
-  forceCloseAndHeavy() {
-    you.x = 420; ai.x = 500; you.y = ai.y = GROUND;
-    you.vx = ai.vx = 0; you.state = 'idle'; ai.state = 'idle';
-    startAttack(you, 'heavy');
+  pause(v) { paused = !!v; },
+  step() { if (mode === "show") updateShow(); else updateFight(); },
+  seekShow(f) {
+    paused = true;
+    resetShow();
+    for (let i = 0; i < f; i++) updateShow();
   },
-  hp: () => ({ you: you.hp, ai: ai.hp })
+  atHit() { return showFrame > SHOW.strikeEnd && showFrame <= SHOW.hitstopEnd; },
+  chars() {
+    const a = mode==="show" ? atk : you;
+    const b = mode==="show" ? vic : ai;
+    return { ax:a.x, ay:a.y, bx:b.x, by:b.y, fx: fx.length, flash:b.flash, tilt:b.tilt };
+  }
 };
-requestAnimationFrame(frame);
 
-// auto-start audio on first gesture already handled
+resetShow();
+setMode("show");
+requestAnimationFrame(frame);
 })();
 </script>
 </body>
