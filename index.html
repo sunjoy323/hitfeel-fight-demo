@@ -142,14 +142,20 @@ const SHOW = {
 };
 
 const ATK_L = {
-  windup: 6, active: 4, recover: 12,
-  dmg: 8, kb: 280, hitstop: 8, reach: 86,
-  shake: 5, zoom: 1.03, fxScale: 0.75
+  // 轻拳：快、短蓄力、轻震、小特效、回收快
+  windup: 4, active: 3, recover: 9,
+  dmg: 6, kb: 180, hitstop: 4, reach: 78,
+  shake: 3.2, zoom: 1.015, fxScale: 0.48,
+  lunge: 2.0, windupAmp: 0.5, strikeAmp: 0.65,
+  hurtSx: 0.72, hurtSy: 1.22, camPush: 5, heavy: false
 };
 const ATK_H = {
-  windup: 10, active: 4, recover: 20,
-  dmg: 16, kb: 480, hitstop: 11, reach: 96,
-  shake: 9, zoom: 1.06, fxScale: 1
+  // 重拳：长蓄力、狠前冲、大卡帧/震动/射线、慢回收
+  windup: 16, active: 5, recover: 26,
+  dmg: 22, kb: 760, hitstop: 16, reach: 112,
+  shake: 15, zoom: 1.11, fxScale: 1.55,
+  lunge: 8.2, windupAmp: 1.2, strikeAmp: 1.35,
+  hurtSx: 0.36, hurtSy: 1.78, camPush: 26, heavy: true
 };
 
 // —— Entities ——
@@ -408,20 +414,23 @@ function setPoseIdle(c) {
   c.tilt = 0; c.squashX = 1; c.squashY = 1; c.punchExtend = 0;
   c.handFront = { x: 42, y: -44 }; c.handBack = { x: -38, y: -40 };
 }
-function setPoseWindup(c, p) { // p 0..1 — lean BACK hard
-  c.tilt = -0.95 * p;
-  c.squashX = 1 + 0.26 * p; c.squashY = 1 - 0.30 * p;
-  c.punchExtend = -0.55 * p;
-  c.handFront = { x: 4 - 48 * p, y: -46 - 6 * p };
+function setPoseWindup(c, p, amp) { // p 0..1 — lean BACK; amp scales light/heavy
+  amp = amp == null ? 1 : amp;
+  c.tilt = -0.95 * p * amp;
+  c.squashX = 1 + 0.26 * p * amp; c.squashY = 1 - 0.30 * p * Math.min(1.15, amp);
+  c.punchExtend = -0.55 * p * amp;
+  c.handFront = { x: 4 - 48 * p * amp, y: -46 - 8 * p * amp };
   c.handBack = { x: -24 + 12 * p, y: -32 };
 }
-function setPoseStrike(c, p) { // p 0..1 through strike — hard lunge
-  c.tilt = 0.62;
-  c.squashX = 1.32; c.squashY = 0.78;
-  c.punchExtend = 0.2 + 1.05 * p;
-  c.handFront = { x: 44 + 88 * p, y: -46 };
+function setPoseStrike(c, p, amp, lunge) { // p 0..1 through strike
+  amp = amp == null ? 1 : amp;
+  lunge = lunge == null ? 4.6 : lunge;
+  c.tilt = 0.62 * Math.min(1.25, amp);
+  c.squashX = 1 + 0.32 * amp; c.squashY = 1 - 0.22 * amp;
+  c.punchExtend = 0.2 + 1.05 * p * amp;
+  c.handFront = { x: 44 + (70 + 30 * amp) * p, y: -46 };
   c.handBack = { x: -38, y: -32 };
-  c.x += c.facing * 4.6; // hard lunge
+  c.x += c.facing * lunge; // light = snappy nudge, heavy = hard lunge
 }
 function setPoseHitAttacker(c) {
   c.tilt = 0.55;
@@ -601,10 +610,13 @@ function updateFightChar(f, input, foe) {
     f.frame++;
     const a = f.attack;
     if (f.frame <= a.windup) {
-      setPoseWindup(f, f.frame / a.windup);
+      // 重拳蓄力末段略停顿：进度曲线压到尾端，蓄满感更强
+      let wp = f.frame / a.windup;
+      if (a.heavy) wp = wp < 0.72 ? wp / 0.72 * 0.85 : 0.85 + (wp - 0.72) / 0.28 * 0.15;
+      setPoseWindup(f, wp, a.windupAmp);
     } else if (f.frame <= a.windup + a.active) {
       const p = (f.frame - a.windup) / a.active;
-      setPoseStrike(f, p);
+      setPoseStrike(f, p, a.strikeAmp, a.lunge);
       if (!f.hitDone) {
         const fistX = f.x + f.handFront.x * f.facing;
         const fistY = f.y + f.handFront.y;
@@ -620,11 +632,15 @@ function updateFightChar(f, input, foe) {
       }
     } else if (f.frame <= a.windup + a.active + a.recover) {
       const p = (f.frame - a.windup - a.active) / a.recover;
-      f.punchExtend = 1 - p;
-      f.handFront = { x: 100 - 70 * p, y: -50 };
-      f.tilt *= 0.85;
-      f.squashX += (1 - f.squashX) * 0.2;
-      f.squashY += (1 - f.squashY) * 0.2;
+      // 轻拳快速回收；重拳前半段还僵在前伸，后半段才慢慢收
+      const rp = a.heavy ? (p < 0.35 ? 0 : (p - 0.35) / 0.65) : Math.min(1, p * 1.35);
+      f.punchExtend = 1 - rp;
+      const reachX = a.heavy ? 128 : 92;
+      f.handFront = { x: reachX - (reachX - 42) * rp, y: -50 };
+      f.tilt *= a.heavy ? 0.92 : 0.78;
+      const ease = a.heavy ? 0.1 : 0.28;
+      f.squashX += (1 - f.squashX) * ease;
+      f.squashY += (1 - f.squashY) * ease;
     } else {
       f.state = "idle"; f.attack = null; setPoseIdle(f);
     }
@@ -637,7 +653,8 @@ function updateFightChar(f, input, foe) {
     f.x += f.vx; f.vx *= 0.9;
     setPoseHurt(f, Math.min(1, f.frame / 20));
     if (f.frame % 3 === 0 && Math.abs(f.vx) > 1.2) spawnDust(f.x);
-    if (f.frame > 28) { f.state = "idle"; setPoseIdle(f); f.vx = 0; }
+    const hurtLen = f._hurtLen || 28;
+    if (f.frame > hurtLen) { f.state = "idle"; setPoseIdle(f); f.vx = 0; f._hurtLen = 0; }
     if (f.flash > 0) f.flash--;
     return;
   }
@@ -686,18 +703,26 @@ function applyFightHit(attacker, defender, a) {
   }
   defender.hp = Math.max(0, defender.hp - a.dmg);
   defender.state = "hurt"; defender.frame = 0; defender.attack = null;
+  defender._hurtLen = a.heavy ? 42 : 18;
   defender.vx = attacker.facing * (a.kb / 50);
-  defender.flash = 5;
-  defender.squashX = 0.48; defender.squashY = 1.55;
+  defender.flash = a.heavy ? 9 : 3;
+  defender.squashX = a.hurtSx; defender.squashY = a.hurtSy;
   setPoseHurt(defender, 0);
+  // 重拳受击姿势更夸张
+  if (a.heavy) {
+    defender.tilt = -1.05;
+    defender.squashX = a.hurtSx; defender.squashY = a.hurtSy;
+  }
   attacker.hitstop = a.hitstop;
   defender.hitstop = a.hitstop;
   const hx = attacker.x + attacker.facing * attacker.handFront.x;
   const hy = attacker.y + attacker.handFront.y;
   spawnHitFX(hx, hy, a.fxScale, a.hitstop);
-  cam.shake = a.shake; cam.targetZoom = a.zoom; cam.push = attacker.facing * 12;
-  sfxHit(a.dmg > 10);
+  cam.shake = a.shake; cam.targetZoom = a.zoom;
+  cam.push = attacker.facing * a.camPush;
+  sfxHit(!!a.heavy);
   spawnDust(defender.x);
+  if (a.heavy) { spawnDust(defender.x - 10); spawnDust(defender.x + 10); }
   updateHp();
   if (defender.hp <= 0) roundOver = true;
 }
